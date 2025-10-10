@@ -20,7 +20,7 @@ import { Loader2 } from "lucide-react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { UserSegment } from "@/lib/types"
 import { RecaptchaVerifier, signInWithPhoneNumber } from "firebase/auth"
-import { doc, setDoc, serverTimestamp } from "firebase/firestore"
+import { doc, setDoc, serverTimestamp, getDocs, collection } from "firebase/firestore"
 import { auth, db } from "@/lib/firebase"
 
 
@@ -94,12 +94,16 @@ export function SignupForm() {
         try {
             const userCredential = await confirmationResult.confirm(values.code);
             const user = userCredential.user;
+            
+            const profilesCollection = collection(db, 'profiles');
+            const profilesSnapshot = await getDocs(profilesCollection);
+            const isFirstUser = profilesSnapshot.empty;
 
             await setDoc(doc(db, "profiles", user.uid), {
                 displayName: values.displayName,
                 phone: values.phone,
                 segment: values.segment,
-                role: 'user',
+                role: isFirstUser ? 'admin' : 'user',
                 isPremium: false,
                 premiumUntil: null,
                 createdAt: serverTimestamp(),
