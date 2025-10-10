@@ -65,7 +65,7 @@ export function UserMenu() {
               {profile?.displayName || 'Utilisateur'}
             </p>
             <p className="text-xs leading-none text-muted-foreground">
-              {user.email}
+              {user.phoneNumber || profile?.phone}
             </p>
           </div>
         </DropdownMenuLabel>

@@ -6,7 +6,7 @@ export type UserRole = 'user' | 'admin';
 export interface Profile {
   id: string;
   email?: string;
-  phone?: string;
+  phone: string;
   displayName?: string;
   segment: UserSegment;
   role: UserRole;

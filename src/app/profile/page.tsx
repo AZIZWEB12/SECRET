@@ -23,7 +23,7 @@ import { UserSegment } from "@/lib/types";
 
 const profileFormSchema = z.object({
   displayName: z.string().min(2, "Le nom est trop court."),
-  phone: z.string().optional(),
+  phone: z.string().min(8, "Le numéro de téléphone est trop court."),
   segment: z.enum(["direct", "professionnel"]),
 });
 
@@ -97,7 +97,7 @@ export default function ProfilePage() {
                     </Avatar>
                     <div className="text-center md:text-left">
                         <h1 className="text-3xl font-bold font-headline">{profile?.displayName}</h1>
-                        <p className="text-muted-foreground">{profile?.email}</p>
+                        <p className="text-muted-foreground">{user.phoneNumber || profile?.phone}</p>
                         <div className="mt-2 flex items-center gap-2 justify-center md:justify-start">
                             <Badge variant={profile?.isPremium ? "default" : "secondary"}>
                                 {profile?.isPremium ? "Premium" : "Gratuit"}
