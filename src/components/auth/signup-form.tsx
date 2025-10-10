@@ -20,7 +20,7 @@ import { Loader2 } from "lucide-react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { UserSegment } from "@/lib/types"
 import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth"
-import { doc, setDoc, serverTimestamp, getDocs, collection, query } from "firebase/firestore"
+import { doc, setDoc, serverTimestamp } from "firebase/firestore"
 import { auth, db } from "@/lib/firebase"
 import { errorEmitter } from "@/firebase/error-emitter"
 import { FirestorePermissionError } from "@/firebase/errors"
@@ -62,25 +62,12 @@ export function SignupForm() {
         const displayName = `${values.firstName} ${values.lastName}`;
         await updateProfile(user, { displayName });
         
-        const profilesCollectionRef = collection(db, 'profiles');
-        
-        const q = query(profilesCollectionRef);
-        const querySnapshot = await getDocs(q).catch((serverError) => {
-            const permissionError = new FirestorePermissionError({
-                path: profilesCollectionRef.path,
-                operation: 'list',
-            });
-            errorEmitter.emit('permission-error', permissionError);
-            throw permissionError; 
-        });
-
-        const isFirstUser = querySnapshot.empty;
-
+        // Default to 'user'. First user can be promoted to admin manually in Firebase Console.
         const profileData = {
             displayName: displayName,
             phone: values.phone,
             segment: values.segment,
-            role: isFirstUser ? 'admin' : 'user',
+            role: 'user', 
             isPremium: false,
             premiumUntil: null,
             createdAt: serverTimestamp(),
