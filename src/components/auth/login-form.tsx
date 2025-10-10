@@ -20,6 +20,8 @@ import { signInWithEmailAndPassword } from "firebase/auth"
 import { auth, db } from "@/lib/firebase"
 import { useRouter } from "next/navigation"
 import { collection, query, where, getDocs } from "firebase/firestore"
+import { FirestorePermissionError } from "@/firebase/errors"
+import { errorEmitter } from "@/firebase/error-emitter"
 
 const formSchema = z.object({
   phone: z.string().min(8, { message: "Veuillez entrer un numéro de téléphone valide." }),
@@ -44,7 +46,16 @@ export function LoginForm() {
     try {
         const profilesRef = collection(db, 'profiles');
         const q = query(profilesRef, where("phone", "==", values.phone));
-        const querySnapshot = await getDocs(q);
+        
+        const querySnapshot = await getDocs(q).catch(async (serverError) => {
+            const permissionError = new FirestorePermissionError({
+                path: profilesRef.path,
+                operation: 'list',
+            });
+            errorEmitter.emit('permission-error', permissionError);
+            // We need to re-throw or return a specific value to stop execution
+            throw permissionError;
+        });
 
         if (querySnapshot.empty) {
             toast({
@@ -76,16 +87,20 @@ export function LoginForm() {
       router.push("/home");
 
     } catch (error: any) {
-      console.error(error);
-      let description = "La connexion a échoué. Veuillez réessayer.";
-      if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
-        description = "Numéro de téléphone ou mot de passe incorrect."
+      // Catch errors from our custom handler or from signInWithEmailAndPassword
+      if (error.name !== 'FirestorePermissionError') {
+          console.error(error);
+          let description = "La connexion a échoué. Veuillez réessayer.";
+          if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
+            description = "Numéro de téléphone ou mot de passe incorrect."
+          }
+          toast({
+            title: "Erreur",
+            description: description,
+            variant: "destructive",
+          });
       }
-      toast({
-        title: "Erreur",
-        description: description,
-        variant: "destructive",
-      });
+      // If it's a FirestorePermissionError, it's already been emitted and will be shown in the dev overlay.
     } finally {
       setLoading(false);
     }
