@@ -20,7 +20,7 @@ import { Loader2 } from "lucide-react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { UserSegment } from "@/lib/types"
 import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth"
-import { doc, setDoc, serverTimestamp, getDocs, collection, query, where } from "firebase/firestore"
+import { doc, setDoc, serverTimestamp, getDocs, collection, query } from "firebase/firestore"
 import { auth, db } from "@/lib/firebase"
 import { errorEmitter } from "@/firebase/error-emitter"
 import { FirestorePermissionError } from "@/firebase/errors"
@@ -63,8 +63,18 @@ export function SignupForm() {
         await updateProfile(user, { displayName });
         
         const profilesCollectionRef = collection(db, 'profiles');
-        const allProfilesSnapshot = await getDocs(query(profilesCollectionRef));
-        const isFirstUser = allProfilesSnapshot.empty;
+        
+        const q = query(profilesCollectionRef);
+        const querySnapshot = await getDocs(q).catch((serverError) => {
+            const permissionError = new FirestorePermissionError({
+                path: profilesCollectionRef.path,
+                operation: 'list',
+            });
+            errorEmitter.emit('permission-error', permissionError);
+            throw permissionError; 
+        });
+
+        const isFirstUser = querySnapshot.empty;
 
         const profileData = {
             displayName: displayName,
@@ -79,7 +89,7 @@ export function SignupForm() {
 
         const profileDocRef = doc(db, "profiles", user.uid);
         
-        setDoc(profileDocRef, profileData)
+        await setDoc(profileDocRef, profileData)
           .catch(async (serverError) => {
             const permissionError = new FirestorePermissionError({
               path: profileDocRef.path,
@@ -87,11 +97,12 @@ export function SignupForm() {
               requestResourceData: profileData
             });
             errorEmitter.emit('permission-error', permissionError);
+            throw permissionError;
           });
         
         toast({
             title: "Compte créé avec succès!",
-            description: "Bienvenue sur Concours Master Prep.",
+            description: "Bienvenue sur Concours Master Prep. Vous allez être redirigé.",
         });
         router.push("/home");
 
@@ -104,7 +115,7 @@ export function SignupForm() {
                 description: "Ce numéro de téléphone est déjà utilisé.",
                 variant: "destructive",
             });
-        } else {
+        } else if (!(error instanceof FirestorePermissionError)) {
              toast({
                 title: "Erreur d'inscription",
                 description: "Une erreur est survenue. Veuillez réessayer.",
