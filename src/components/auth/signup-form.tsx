@@ -55,9 +55,10 @@ export function SignupForm() {
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setLoading(true);
 
+    const profilesRef = collection(db, 'profiles');
+    const q = query(profilesRef, where("phone", "==", values.phone));
+    
     try {
-        const profilesRef = collection(db, 'profiles');
-        const q = query(profilesRef, where("phone", "==", values.phone));
         const querySnapshot = await getDocs(q);
 
         if (!querySnapshot.empty) {
@@ -109,7 +110,16 @@ export function SignupForm() {
         router.push("/home");
 
     } catch (error: any) {
-        // This will catch errors from signInAnonymously or getDocs, but not setDoc
+        if (error.code && error.code.includes('permission-denied')) {
+             const permissionError = new FirestorePermissionError({
+                path: profilesRef.path,
+                operation: 'list',
+            });
+            errorEmitter.emit('permission-error', permissionError);
+            // We re-throw the error so the development overlay can catch it
+            throw permissionError;
+        }
+
         console.error("Signup error:", error);
         toast({
             title: "Erreur d'inscription",
