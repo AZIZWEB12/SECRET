@@ -6,6 +6,8 @@ import { doc, onSnapshot } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
 import { Profile } from '@/lib/types';
 import { FirebaseErrorListener } from '@/components/FirebaseErrorListener';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 export interface AuthContextType {
   user: User | null;
@@ -35,19 +37,27 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (user) {
       const profileRef = doc(db, 'profiles', user.uid);
-      const unsubscribeProfile = onSnapshot(profileRef, (docSnap) => {
-        if (docSnap.exists()) {
-          setProfile({ id: docSnap.id, ...docSnap.data() } as Profile);
-        } else {
-          // Profile might not be created yet on first login
+      const unsubscribeProfile = onSnapshot(profileRef, 
+        (docSnap) => {
+          if (docSnap.exists()) {
+            setProfile({ id: docSnap.id, ...docSnap.data() } as Profile);
+          } else {
+            // Profile might not be created yet on first login
+            setProfile(null);
+          }
+          setLoading(false);
+        }, 
+        (serverError) => {
           setProfile(null);
+          setLoading(false);
+
+          const permissionError = new FirestorePermissionError({
+              path: profileRef.path,
+              operation: 'get',
+          });
+          errorEmitter.emit('permission-error', permissionError);
         }
-        setLoading(false);
-      }, (error) => {
-        console.error("Error fetching profile:", error);
-        setProfile(null);
-        setLoading(false);
-      });
+      );
 
       return () => unsubscribeProfile();
     }

@@ -28,6 +28,7 @@ export default function AdminUsersPage() {
                 const profiles = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Profile));
                 setUsers(profiles);
                 setLoading(false);
+                setError(null);
             },
             (serverError) => {
                 setLoading(false);
@@ -52,9 +53,9 @@ export default function AdminUsersPage() {
             {error && (
                 <Alert variant="destructive">
                     <AlertTriangle className="h-4 w-4" />
-                    <AlertTitle>Erreur</AlertTitle>
+                    <AlertTitle>Erreur de permission</AlertTitle>
                     <AlertDescription>
-                        Impossible de charger les utilisateurs. Les permissions sont insuffisantes.
+                        Vous n'avez pas les droits nécessaires pour consulter la liste des utilisateurs.
                     </AlertDescription>
                 </Alert>
             )}
@@ -94,6 +95,7 @@ export default function AdminUsersPage() {
                                 </TableCell>
                                 <TableCell>
                                     <Badge variant={user.isPremium ? 'default' : 'outline'}>{user.isPremium ? 'Oui' : 'Non'}</Badge>
+
                                 </TableCell>
                                 <TableCell>
                                     {user.createdAt ? format(user.createdAt.toDate(), 'dd MMM yyyy', { locale: fr }) : '-'}
