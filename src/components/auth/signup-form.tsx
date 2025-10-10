@@ -19,15 +19,17 @@ import { useState } from "react"
 import { Loader2 } from "lucide-react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { UserSegment } from "@/lib/types"
-import { signInAnonymously } from "firebase/auth"
+import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth"
 import { doc, setDoc, serverTimestamp, getDocs, collection, query, where, DocumentReference } from "firebase/firestore"
 import { auth, db } from "@/lib/firebase"
 import { errorEmitter } from "@/firebase/error-emitter"
 import { FirestorePermissionError } from "@/firebase/errors"
 
 const formSchema = z.object({
-  displayName: z.string().min(2, { message: "Le nom doit contenir au moins 2 caractères." }),
+  firstName: z.string().min(2, { message: "Le prénom doit contenir au moins 2 caractères." }),
+  lastName: z.string().min(2, { message: "Le nom doit contenir au moins 2 caractères." }),
   phone: z.string().min(8, { message: "Veuillez entrer un numéro de téléphone valide." }),
+  password: z.string().min(6, { message: "Le mot de passe doit contenir au moins 6 caractères."}),
   segment: z.enum(["direct", "professionnel"], { required_error: "Veuillez choisir un segment." }),
 })
 
@@ -42,8 +44,10 @@ export function SignupForm() {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      displayName: "",
+      firstName: "",
+      lastName: "",
       phone: "+226",
+      password: "",
       segment: defaultSegment || undefined,
     },
   })
@@ -66,20 +70,24 @@ export function SignupForm() {
             return;
         }
 
-        const userCredential = await signInAnonymously(auth);
+        const email = `${values.phone}@concours-master-prep.com`;
+        const userCredential = await createUserWithEmailAndPassword(auth, email, values.password);
         const user = userCredential.user;
+        const displayName = `${values.firstName} ${values.lastName}`;
+        await updateProfile(user, { displayName });
         
         const allProfilesSnapshot = await getDocs(collection(db, 'profiles'));
         const isFirstUser = allProfilesSnapshot.empty;
 
         const profileData = {
-            displayName: values.displayName,
+            displayName: displayName,
             phone: values.phone,
             segment: values.segment,
             role: isFirstUser ? 'admin' : 'user',
             isPremium: false,
             premiumUntil: null,
             createdAt: serverTimestamp(),
+            email: email,
         };
 
         const profileDocRef = doc(db, "profiles", user.uid);
@@ -121,12 +129,25 @@ export function SignupForm() {
             <>
               <FormField
                 control={form.control}
-                name="displayName"
+                name="firstName"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Nom complet</FormLabel>
+                    <FormLabel>Prénom</FormLabel>
                     <FormControl>
-                      <Input placeholder="John Doe" {...field} />
+                      <Input placeholder="John" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="lastName"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Nom</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Doe" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -140,6 +161,19 @@ export function SignupForm() {
                     <FormLabel>Numéro de téléphone</FormLabel>
                     <FormControl>
                       <Input placeholder="+226 XX XX XX XX" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="password"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Mot de passe</FormLabel>
+                    <FormControl>
+                      <Input type="password" placeholder="********" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

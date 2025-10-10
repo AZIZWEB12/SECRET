@@ -16,13 +16,14 @@ import { Input } from "@/components/ui/input"
 import { useToast } from "@/hooks/use-toast"
 import { useState } from "react"
 import { Loader2 } from "lucide-react"
-import { signInAnonymously } from "firebase/auth"
+import { signInWithEmailAndPassword } from "firebase/auth"
 import { auth, db } from "@/lib/firebase"
 import { useRouter } from "next/navigation"
-import { collection, query, where, getDocs, updateDoc } from "firebase/firestore"
+import { collection, query, where, getDocs } from "firebase/firestore"
 
 const formSchema = z.object({
   phone: z.string().min(8, { message: "Veuillez entrer un numéro de téléphone valide." }),
+  password: z.string().min(1, { message: "Veuillez entrer votre mot de passe." }),
 })
 
 export function LoginForm() {
@@ -34,29 +35,15 @@ export function LoginForm() {
     resolver: zodResolver(formSchema),
     defaultValues: {
       phone: "+226",
+      password: "",
     },
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setLoading(true);
     try {
-      const profilesRef = collection(db, 'profiles');
-      const q = query(profilesRef, where("phone", "==", values.phone));
-      const querySnapshot = await getDocs(q);
-
-      if (querySnapshot.empty) {
-        toast({
-          title: "Erreur",
-          description: "Aucun compte n'est associé à ce numéro. Veuillez vous inscrire.",
-          variant: "destructive",
-        });
-        setLoading(false);
-        return;
-      }
-      
-      // For simplicity, we sign in the user anonymously.
-      // In a real-world scenario, you might want a more secure custom auth system.
-      await signInAnonymously(auth);
+      const email = `${values.phone}@concours-master-prep.com`;
+      await signInWithEmailAndPassword(auth, email, values.password);
 
       toast({
         title: "Connexion réussie!",
@@ -66,9 +53,13 @@ export function LoginForm() {
 
     } catch (error: any) {
       console.error(error);
+      let description = "La connexion a échoué. Veuillez réessayer.";
+      if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
+        description = "Numéro de téléphone ou mot de passe incorrect."
+      }
       toast({
         title: "Erreur",
-        description: "La connexion a échoué. Veuillez réessayer.",
+        description: description,
         variant: "destructive",
       });
     } finally {
@@ -94,6 +85,19 @@ export function LoginForm() {
               </FormItem>
             )}
           />
+          <FormField
+            control={form.control}
+            name="password"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Mot de passe</FormLabel>
+                <FormControl>
+                  <Input type="password" placeholder="********" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
           <Button type="submit" className="w-full" disabled={loading}>
             {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Se connecter
@@ -102,11 +106,4 @@ export function LoginForm() {
       </Form>
     </>
   )
-}
-
-declare global {
-    interface Window {
-        recaptchaVerifier: any;
-        confirmationResult: any;
-    }
 }
