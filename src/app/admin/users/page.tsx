@@ -2,8 +2,7 @@
 'use client';
 import { AppLayout } from "@/components/layout/app-layout";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { useCollection } from 'react-firebase-hooks/firestore';
-import { collection } from "firebase/firestore";
+import { collection, onSnapshot } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { Profile } from "@/lib/types";
 import { Badge } from "@/components/ui/badge";
@@ -12,11 +11,39 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertTriangle } from "lucide-react";
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
+import { useEffect, useState } from "react";
+import { FirestorePermissionError } from "@/firebase/errors";
+import { errorEmitter } from "@/firebase/error-emitter";
 
 export default function AdminUsersPage() {
 
-    const [profilesSnapshot, loading, error] = useCollection(collection(db, 'profiles'));
-    const users = profilesSnapshot?.docs.map(doc => ({ id: doc.id, ...doc.data() } as Profile));
+    const [users, setUsers] = useState<Profile[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<Error | null>(null);
+
+    useEffect(() => {
+        const usersCollectionRef = collection(db, 'profiles');
+        const unsubscribe = onSnapshot(usersCollectionRef, 
+            (snapshot) => {
+                const profiles = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Profile));
+                setUsers(profiles);
+                setLoading(false);
+            },
+            (serverError) => {
+                setLoading(false);
+                setError(serverError);
+
+                const permissionError = new FirestorePermissionError({
+                    path: usersCollectionRef.path,
+                    operation: 'list',
+                });
+                errorEmitter.emit('permission-error', permissionError);
+            }
+        );
+
+        return () => unsubscribe();
+    }, []);
+
 
     return (
         <AppLayout>
@@ -27,7 +54,7 @@ export default function AdminUsersPage() {
                     <AlertTriangle className="h-4 w-4" />
                     <AlertTitle>Erreur</AlertTitle>
                     <AlertDescription>
-                        Impossible de charger les utilisateurs. Vérifiez les règles de sécurité Firestore.
+                        Impossible de charger les utilisateurs. Les permissions sont insuffisantes.
                     </AlertDescription>
                 </Alert>
             )}
@@ -73,7 +100,7 @@ export default function AdminUsersPage() {
                                 </TableCell>
                             </TableRow>
                         ))}
-                         {!loading && users?.length === 0 && (
+                         {!loading && users?.length === 0 && !error && (
                             <TableRow>
                                 <TableCell colSpan={6} className="h-24 text-center">
                                     Aucun utilisateur trouvé.
