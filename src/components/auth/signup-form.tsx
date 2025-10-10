@@ -20,7 +20,7 @@ import { Loader2 } from "lucide-react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { UserSegment } from "@/lib/types"
 import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth"
-import { doc, setDoc, serverTimestamp, getDocs, collection, query, where, DocumentReference } from "firebase/firestore"
+import { doc, setDoc, serverTimestamp, getDocs, collection } from "firebase/firestore"
 import { auth, db } from "@/lib/firebase"
 import { errorEmitter } from "@/firebase/error-emitter"
 import { FirestorePermissionError } from "@/firebase/errors"
@@ -54,30 +54,15 @@ export function SignupForm() {
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setLoading(true);
-
-    const profilesRef = collection(db, 'profiles');
-    const q = query(profilesRef, where("phone", "==", values.phone));
     
     try {
-        const querySnapshot = await getDocs(q);
-
-        if (!querySnapshot.empty) {
-            toast({
-                title: "Erreur d'inscription",
-                description: "Ce numéro de téléphone est déjà utilisé.",
-                variant: "destructive",
-            });
-            setLoading(false);
-            return;
-        }
-
         const email = `${values.phone}@concours-master-prep.com`;
         const userCredential = await createUserWithEmailAndPassword(auth, email, values.password);
         const user = userCredential.user;
         const displayName = `${values.firstName} ${values.lastName}`;
         await updateProfile(user, { displayName });
         
-        const allProfilesSnapshot = await getDocs(collection(db, 'profiles'));
+        const allProfilesSnapshot = await getDocs(collection(db, 'profiles')).catch(() => ({ empty: true }));
         const isFirstUser = allProfilesSnapshot.empty;
 
         const profileData = {
@@ -93,15 +78,7 @@ export function SignupForm() {
 
         const profileDocRef = doc(db, "profiles", user.uid);
         
-        setDoc(profileDocRef, profileData)
-          .catch(async (serverError) => {
-            const permissionError = new FirestorePermissionError({
-              path: profileDocRef.path,
-              operation: 'create',
-              requestResourceData: profileData
-            });
-            errorEmitter.emit('permission-error', permissionError);
-          });
+        await setDoc(profileDocRef, profileData);
         
         toast({
             title: "Compte créé avec succès!",
@@ -110,22 +87,28 @@ export function SignupForm() {
         router.push("/home");
 
     } catch (error: any) {
-        if (error.code && error.code.includes('permission-denied')) {
+        console.error("Signup error:", error);
+
+        if (error.code === 'auth/email-already-in-use') {
+            toast({
+                title: "Erreur d'inscription",
+                description: "Ce numéro de téléphone est déjà utilisé.",
+                variant: "destructive",
+            });
+        } else if (error.code && error.code.includes('permission-denied')) {
              const permissionError = new FirestorePermissionError({
-                path: profilesRef.path,
-                operation: 'list',
+                path: 'profiles',
+                operation: 'create',
+                requestResourceData: { phone: values.phone /* don't leak all data */ }
             });
             errorEmitter.emit('permission-error', permissionError);
-            // We re-throw the error so the development overlay can catch it
-            throw permissionError;
+        } else {
+            toast({
+                title: "Erreur d'inscription",
+                description: "Une erreur est survenue. Veuillez réessayer.",
+                variant: "destructive",
+            });
         }
-
-        console.error("Signup error:", error);
-        toast({
-            title: "Erreur d'inscription",
-            description: "Une erreur est survenue. Veuillez réessayer.",
-            variant: "destructive",
-        });
     } finally {
         setLoading(false);
     }
