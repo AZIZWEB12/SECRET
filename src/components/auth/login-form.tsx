@@ -43,66 +43,61 @@ export function LoginForm() {
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setLoading(true);
-    try {
-        const profilesRef = collection(db, 'profiles');
-        const q = query(profilesRef, where("phone", "==", values.phone));
-        
-        const querySnapshot = await getDocs(q).catch(async (serverError) => {
-            const permissionError = new FirestorePermissionError({
-                path: profilesRef.path,
-                operation: 'list',
-            });
-            errorEmitter.emit('permission-error', permissionError);
-            // We need to re-throw or return a specific value to stop execution
-            throw permissionError;
+
+    const profilesRef = collection(db, 'profiles');
+    const q = query(profilesRef, where("phone", "==", values.phone));
+
+    const querySnapshot = await getDocs(q).catch((serverError) => {
+        const permissionError = new FirestorePermissionError({
+            path: profilesRef.path,
+            operation: 'list',
         });
+        errorEmitter.emit('permission-error', permissionError);
+        // Rethrow the error to stop execution and let the listener handle it.
+        throw permissionError;
+    });
 
-        if (querySnapshot.empty) {
-            toast({
-                title: "Erreur",
-                description: "Numéro de téléphone ou mot de passe incorrect.",
-                variant: "destructive",
-            });
-            setLoading(false);
-            return;
-        }
-
-        const userProfile = querySnapshot.docs[0].data();
-        if (!userProfile.email) {
-             toast({
-                title: "Erreur de connexion",
-                description: "Aucun e-mail associé à ce compte. Veuillez contacter le support.",
-                variant: "destructive",
-            });
-            setLoading(false);
-            return;
-        }
-
-      await signInWithEmailAndPassword(auth, userProfile.email, values.password);
-
-      toast({
-        title: "Connexion réussie!",
-        description: "Bienvenue sur Concours Master Prep.",
-      });
-      router.push("/home");
-
-    } catch (error: any) {
-      // Catch errors from our custom handler or from signInWithEmailAndPassword
-      if (error.name !== 'FirestorePermissionError') {
-          console.error(error);
-          let description = "La connexion a échoué. Veuillez réessayer.";
-          if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
-            description = "Numéro de téléphone ou mot de passe incorrect."
-          }
-          toast({
+    if (querySnapshot.empty) {
+        toast({
             title: "Erreur",
-            description: description,
+            description: "Numéro de téléphone ou mot de passe incorrect.",
             variant: "destructive",
-          });
-      }
-      // If it's a FirestorePermissionError, it's already been emitted and will be shown in the dev overlay.
+        });
+        setLoading(false);
+        return;
+    }
+
+    const userProfile = querySnapshot.docs[0].data();
+    if (!userProfile.email) {
+            toast({
+            title: "Erreur de connexion",
+            description: "Aucun e-mail associé à ce compte. Veuillez contacter le support.",
+            variant: "destructive",
+        });
+        setLoading(false);
+        return;
+    }
+
+    try {
+        await signInWithEmailAndPassword(auth, userProfile.email, values.password);
+
+        toast({
+            title: "Connexion réussie!",
+            description: "Bienvenue sur Concours Master Prep.",
+        });
+        router.push("/home");
+    } catch(error: any) {
+        let description = "La connexion a échoué. Veuillez réessayer.";
+        if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
+        description = "Numéro de téléphone ou mot de passe incorrect."
+        }
+        toast({
+        title: "Erreur",
+        description: description,
+        variant: "destructive",
+        });
     } finally {
-      setLoading(false);
+        setLoading(false);
     }
   }
 
