@@ -12,16 +12,17 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useForm, Controller } from "react-hook-form";
+import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { doc, updateDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
-import { UserSegment } from "@/lib/types";
 import { FirestorePermissionError } from "@/firebase/errors";
 import { errorEmitter } from "@/firebase/error-emitter";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+
 
 const profileFormSchema = z.object({
   displayName: z.string().min(2, "Le nom est trop court."),
@@ -37,8 +38,13 @@ export default function ProfilePage() {
     const { toast } = useToast();
     const [isSubmitting, setIsSubmitting] = useState(false);
 
-    const { control, handleSubmit, reset } = useForm<ProfileFormData>({
+    const form = useForm<ProfileFormData>({
       resolver: zodResolver(profileFormSchema),
+      defaultValues: {
+        displayName: '',
+        phone: '',
+        segment: 'direct'
+      }
     });
 
     useEffect(() => {
@@ -46,13 +52,13 @@ export default function ProfilePage() {
             router.push('/login');
         }
         if (profile) {
-            reset({
+            form.reset({
                 displayName: profile.displayName || '',
                 phone: profile.phone || '',
                 segment: profile.segment,
             });
         }
-    }, [user, profile, loading, router, reset]);
+    }, [user, profile, loading, router, form]);
 
     const getInitials = (name?: string | null) => {
         if (!name) return 'U';
@@ -125,50 +131,61 @@ export default function ProfilePage() {
                             <CardTitle>Modifier le profil</CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-                                <Controller
-                                    name="displayName"
-                                    control={control}
-                                    render={({ field }) => (
-                                        <div className="space-y-2">
-                                            <Label htmlFor="displayName">Nom complet</Label>
-                                            <Input id="displayName" {...field} />
-                                        </div>
-                                    )}
-                                />
-                                <Controller
-                                    name="phone"
-                                    control={control}
-                                    render={({ field }) => (
-                                        <div className="space-y-2">
-                                            <Label htmlFor="phone">Numéro de téléphone</Label>
-                                            <Input id="phone" {...field} placeholder="+226 XX XX XX XX"/>
-                                        </div>
-                                    )}
-                                />
-                                <Controller
-                                    name="segment"
-                                    control={control}
-                                    render={({ field }) => (
-                                      <div className="space-y-2">
-                                        <Label>Segment d'apprentissage</Label>
-                                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                            <SelectTrigger>
-                                                <SelectValue />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="direct">Concours Direct</SelectItem>
-                                                <SelectItem value="professionnel">Concours Professionnel</SelectItem>
-                                            </SelectContent>
-                                        </Select>
-                                      </div>
-                                    )}
-                                />
-                                <Button type="submit" disabled={isSubmitting}>
-                                    {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
-                                    Enregistrer les modifications
-                                </Button>
-                            </form>
+                            <Form {...form}>
+                                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                                    <FormField
+                                        control={form.control}
+                                        name="displayName"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>Nom complet</FormLabel>
+                                                <FormControl>
+                                                    <Input id="displayName" {...field} />
+                                                </FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                    <FormField
+                                        control={form.control}
+                                        name="phone"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>Numéro de téléphone</FormLabel>
+                                                <FormControl>
+                                                    <Input id="phone" {...field} placeholder="+226 XX XX XX XX"/>
+                                                </FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                    <FormField
+                                        control={form.control}
+                                        name="segment"
+                                        render={({ field }) => (
+                                          <FormItem>
+                                            <FormLabel>Segment d'apprentissage</FormLabel>
+                                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                                <FormControl>
+                                                    <SelectTrigger>
+                                                        <SelectValue />
+                                                    </SelectTrigger>
+                                                </FormControl>
+                                                <SelectContent>
+                                                    <SelectItem value="direct">Concours Direct</SelectItem>
+                                                    <SelectItem value="professionnel">Concours Professionnel</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                            <FormMessage />
+                                          </FormItem>
+                                        )}
+                                    />
+                                    <Button type="submit" disabled={isSubmitting}>
+                                        {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
+                                        Enregistrer les modifications
+                                    </Button>
+                                </form>
+                            </Form>
                         </CardContent>
                     </Card>
 
