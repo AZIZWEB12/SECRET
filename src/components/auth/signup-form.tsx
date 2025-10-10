@@ -20,8 +20,10 @@ import { Loader2 } from "lucide-react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { UserSegment } from "@/lib/types"
 import { signInAnonymously } from "firebase/auth"
-import { doc, setDoc, serverTimestamp, getDocs, collection, query, where } from "firebase/firestore"
+import { doc, setDoc, serverTimestamp, getDocs, collection, query, where, DocumentReference } from "firebase/firestore"
 import { auth, db } from "@/lib/firebase"
+import { errorEmitter } from "@/firebase/error-emitter"
+import { FirestorePermissionError } from "@/firebase/errors"
 
 const formSchema = z.object({
   displayName: z.string().min(2, { message: "Le nom doit contenir au moins 2 caractères." }),
@@ -70,7 +72,7 @@ export function SignupForm() {
         const allProfilesSnapshot = await getDocs(collection(db, 'profiles'));
         const isFirstUser = allProfilesSnapshot.empty;
 
-        await setDoc(doc(db, "profiles", user.uid), {
+        const profileData = {
             displayName: values.displayName,
             phone: values.phone,
             segment: values.segment,
@@ -78,14 +80,28 @@ export function SignupForm() {
             isPremium: false,
             premiumUntil: null,
             createdAt: serverTimestamp(),
-        });
+        };
 
+        const profileDocRef = doc(db, "profiles", user.uid);
+        
+        setDoc(profileDocRef, profileData)
+          .catch(async (serverError) => {
+            const permissionError = new FirestorePermissionError({
+              path: profileDocRef.path,
+              operation: 'create',
+              requestResourceData: profileData
+            });
+            errorEmitter.emit('permission-error', permissionError);
+          });
+        
         toast({
             title: "Compte créé avec succès!",
             description: "Bienvenue sur Concours Master Prep.",
         });
         router.push("/home");
+
     } catch (error: any) {
+        // This will catch errors from signInAnonymously or getDocs, but not setDoc
         console.error("Signup error:", error);
         toast({
             title: "Erreur d'inscription",

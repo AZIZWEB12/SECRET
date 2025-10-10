@@ -5,6 +5,7 @@ import { onAuthStateChanged, User } from 'firebase/auth';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
 import { Profile } from '@/lib/types';
+import { FirebaseErrorListener } from '@/components/FirebaseErrorListener';
 
 export interface AuthContextType {
   user: User | null;
@@ -56,6 +57,7 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
 
   return (
     <AuthContext.Provider value={value}>
+      {process.env.NODE_ENV === 'development' && <FirebaseErrorListener />}
       {children}
     </AuthContext.Provider>
   );
