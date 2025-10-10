@@ -6,7 +6,7 @@ import { AppLogo } from '@/components/shared/app-logo';
 import { useAuth } from '@/hooks/use-auth';
 import { MainNav } from './main-nav';
 import { UserMenu } from './user-menu';
-import { Sheet, SheetContent, SheetTrigger } from '../ui/sheet';
+import { Sheet, SheetContent, SheetTitle, SheetTrigger } from '../ui/sheet';
 import { Menu } from 'lucide-react';
 import { useState } from 'react';
 
@@ -41,6 +41,7 @@ export function Header() {
             </Button>
           </SheetTrigger>
           <SheetContent side="left" className="pr-0">
+            <SheetTitle className="sr-only">Menu</SheetTitle>
             <Link
               href="/"
               className="mb-8 flex items-center"
