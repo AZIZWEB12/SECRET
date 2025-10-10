@@ -54,7 +54,7 @@ export default function AdminDashboardPage() {
             <h2 className="text-2xl font-bold mt-12 mb-6 font-headline">Gestion du contenu</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {adminLinks.map(link => (
-                    <Link href={link.href} key={link.href}>
+                    <Link href={link.href} key={link.href} passHref>
                          <Card className="hover:bg-muted/50 transition-colors">
                             <CardHeader className="flex flex-row items-center gap-4 space-y-0">
                                 <link.icon className="h-8 w-8 text-primary" />
