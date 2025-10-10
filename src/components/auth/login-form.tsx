@@ -23,7 +23,7 @@ import { collection, query, where, getDocs } from "firebase/firestore"
 
 const formSchema = z.object({
   phone: z.string().min(8, { message: "Veuillez entrer un numéro de téléphone valide." }),
-  password: z.string().min(1, { message: "Veuillez entrer votre mot de passe." }),
+  password: z.string().min(6, { message: "Le mot de passe doit contenir au moins 6 caractères." }),
 })
 
 export function LoginForm() {
@@ -42,8 +42,32 @@ export function LoginForm() {
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setLoading(true);
     try {
-      const email = `${values.phone}@concours-master-prep.com`;
-      await signInWithEmailAndPassword(auth, email, values.password);
+        const profilesRef = collection(db, 'profiles');
+        const q = query(profilesRef, where("phone", "==", values.phone));
+        const querySnapshot = await getDocs(q);
+
+        if (querySnapshot.empty) {
+            toast({
+                title: "Erreur",
+                description: "Numéro de téléphone ou mot de passe incorrect.",
+                variant: "destructive",
+            });
+            setLoading(false);
+            return;
+        }
+
+        const userProfile = querySnapshot.docs[0].data();
+        if (!userProfile.email) {
+             toast({
+                title: "Erreur de connexion",
+                description: "Aucun e-mail associé à ce compte. Veuillez contacter le support.",
+                variant: "destructive",
+            });
+            setLoading(false);
+            return;
+        }
+
+      await signInWithEmailAndPassword(auth, userProfile.email, values.password);
 
       toast({
         title: "Connexion réussie!",
