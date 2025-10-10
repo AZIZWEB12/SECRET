@@ -75,16 +75,12 @@ export default function ProfilePage() {
           toast({ title: "Profil mis à jour avec succès!" });
         })
         .catch(async (serverError) => {
-            if (serverError.code === 'permission-denied') {
-                 const permissionError = new FirestorePermissionError({
-                    path: profileRef.path,
-                    operation: 'update',
-                    requestResourceData: updatedData
-                });
-                errorEmitter.emit('permission-error', permissionError);
-            } else {
-                toast({ title: "Erreur", description: "La mise à jour du profil a échoué.", variant: "destructive" });
-            }
+          const permissionError = new FirestorePermissionError({
+              path: profileRef.path,
+              operation: 'update',
+              requestResourceData: updatedData
+          });
+          errorEmitter.emit('permission-error', permissionError);
         })
         .finally(() => {
             setIsSubmitting(false);
