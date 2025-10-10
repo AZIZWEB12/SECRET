@@ -7,12 +7,12 @@ import { getStorage } from "firebase/storage";
 // IMPORTANT: Replace with your actual Firebase project configuration
 // and store these values in environment variables.
 const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+  apiKey: "AIzaSyCP1TS4Y4ry6ebXcy2HdjN4QonpyxxQ5Os",
+  authDomain: "secrets-du-concours.firebaseapp.com",
+  projectId: "secrets-du-concours",
+  storageBucket: "secrets-du-concours.appspot.com",
+  messagingSenderId: "1096812875621",
+  appId: "1:1096812875621:web:003d998b5ab0faf88e9b8c"
 };
 
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
