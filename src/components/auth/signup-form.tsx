@@ -62,27 +62,9 @@ export function SignupForm() {
         const displayName = `${values.firstName} ${values.lastName}`;
         await updateProfile(user, { displayName });
         
-        // This is still not ideal, but it's the only way to check for the first user without making rules wide open.
-        // We will assume this check fails if permissions are not set, and default to 'user'.
-        const adminQuery = query(collection(db, 'profiles'), where("role", "==", "admin"));
-        
-        let isFirstUser = false;
-        try {
-            const adminSnapshot = await getDocs(adminQuery);
-            isFirstUser = adminSnapshot.empty;
-        } catch (err) {
-            // This will likely fail for non-admins due to security rules, which is what we want.
-            // We'll assume this user is not the first admin.
-            console.warn("Could not query for admins, assuming 'user' role. This is expected for non-admin users.");
-            const permissionError = new FirestorePermissionError({
-                path: 'profiles',
-                operation: 'list',
-            });
-            // We don't emit this one as it's an expected failure for normal users.
-            // We just use it to control the logic flow.
-            isFirstUser = false;
-        }
-
+        const profilesCollectionRef = collection(db, 'profiles');
+        const allProfilesSnapshot = await getDocs(query(profilesCollectionRef));
+        const isFirstUser = allProfilesSnapshot.empty;
 
         const profileData = {
             displayName: displayName,
@@ -97,15 +79,15 @@ export function SignupForm() {
 
         const profileDocRef = doc(db, "profiles", user.uid);
         
-        await setDoc(profileDocRef, profileData).catch((serverError) => {
+        setDoc(profileDocRef, profileData)
+          .catch(async (serverError) => {
             const permissionError = new FirestorePermissionError({
-                path: profileDocRef.path,
-                operation: 'create',
-                requestResourceData: profileData
+              path: profileDocRef.path,
+              operation: 'create',
+              requestResourceData: profileData
             });
             errorEmitter.emit('permission-error', permissionError);
-            throw permissionError; // re-throw to stop execution
-        });
+          });
         
         toast({
             title: "Compte créé avec succès!",
@@ -122,7 +104,7 @@ export function SignupForm() {
                 description: "Ce numéro de téléphone est déjà utilisé.",
                 variant: "destructive",
             });
-        } else if (error.name !== 'FirestorePermissionError') { // Only show generic error if it's not a permission error
+        } else {
              toast({
                 title: "Erreur d'inscription",
                 description: "Une erreur est survenue. Veuillez réessayer.",
@@ -137,79 +119,79 @@ export function SignupForm() {
   return (
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-              <FormField
-                control={form.control}
-                name="firstName"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Prénom</FormLabel>
-                    <FormControl>
-                      <Input placeholder="John" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="lastName"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Nom</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Doe" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="phone"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Numéro de téléphone</FormLabel>
-                    <FormControl>
-                      <Input placeholder="+226 XX XX XX XX" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="password"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Mot de passe</FormLabel>
-                    <FormControl>
-                      <Input type="password" placeholder="********" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </Item>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="segment"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Segment d'apprentissage</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Choisissez votre concours" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="direct">Concours Direct</SelectItem>
-                        <SelectItem value="professionnel">Concours Professionnel</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+          <FormField
+            control={form.control}
+            name="firstName"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Prénom</FormLabel>
+                <FormControl>
+                  <Input placeholder="John" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="lastName"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Nom</FormLabel>
+                <FormControl>
+                  <Input placeholder="Doe" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="phone"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Numéro de téléphone</FormLabel>
+                <FormControl>
+                  <Input placeholder="+226 XX XX XX XX" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="password"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Mot de passe</FormLabel>
+                <FormControl>
+                  <Input type="password" placeholder="********" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="segment"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Segment d'apprentissage</FormLabel>
+                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Choisissez votre concours" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value="direct">Concours Direct</SelectItem>
+                    <SelectItem value="professionnel">Concours Professionnel</SelectItem>
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
           <Button type="submit" className="w-full" disabled={loading}>
             {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Créer mon compte
