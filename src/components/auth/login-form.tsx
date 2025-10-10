@@ -17,11 +17,8 @@ import { useToast } from "@/hooks/use-toast"
 import { useState } from "react"
 import { Loader2 } from "lucide-react"
 import { signInWithEmailAndPassword } from "firebase/auth"
-import { auth, db } from "@/lib/firebase"
+import { auth } from "@/lib/firebase"
 import { useRouter } from "next/navigation"
-import { collection, query, where, getDocs } from "firebase/firestore"
-import { FirestorePermissionError } from "@/firebase/errors"
-import { errorEmitter } from "@/firebase/error-emitter"
 
 const formSchema = z.object({
   phone: z.string().min(8, { message: "Veuillez entrer un numéro de téléphone valide." }),
@@ -44,42 +41,9 @@ export function LoginForm() {
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setLoading(true);
 
-    const profilesRef = collection(db, 'profiles');
-    const q = query(profilesRef, where("phone", "==", values.phone));
-
-    const querySnapshot = await getDocs(q).catch((serverError) => {
-        const permissionError = new FirestorePermissionError({
-            path: profilesRef.path,
-            operation: 'list',
-        });
-        errorEmitter.emit('permission-error', permissionError);
-        // Rethrow the error to stop execution and let the listener handle it.
-        throw permissionError;
-    });
-
-    if (querySnapshot.empty) {
-        toast({
-            title: "Erreur",
-            description: "Numéro de téléphone ou mot de passe incorrect.",
-            variant: "destructive",
-        });
-        setLoading(false);
-        return;
-    }
-
-    const userProfile = querySnapshot.docs[0].data();
-    if (!userProfile.email) {
-            toast({
-            title: "Erreur de connexion",
-            description: "Aucun e-mail associé à ce compte. Veuillez contacter le support.",
-            variant: "destructive",
-        });
-        setLoading(false);
-        return;
-    }
-
     try {
-        await signInWithEmailAndPassword(auth, userProfile.email, values.password);
+        const email = `${values.phone}@concours-master-prep.com`;
+        await signInWithEmailAndPassword(auth, email, values.password);
 
         toast({
             title: "Connexion réussie!",
@@ -92,7 +56,7 @@ export function LoginForm() {
         description = "Numéro de téléphone ou mot de passe incorrect."
         }
         toast({
-        title: "Erreur",
+        title: "Erreur de connexion",
         description: description,
         variant: "destructive",
         });
