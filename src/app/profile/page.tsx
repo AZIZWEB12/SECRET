@@ -20,6 +20,8 @@ import { db } from "@/lib/firebase";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
 import { UserSegment } from "@/lib/types";
+import { FirestorePermissionError } from "@/firebase/errors";
+import { errorEmitter } from "@/firebase/error-emitter";
 
 const profileFormSchema = z.object({
   displayName: z.string().min(2, "Le nom est trop court."),
@@ -60,19 +62,33 @@ export default function ProfilePage() {
     const onSubmit = async (data: ProfileFormData) => {
       if (!user) return;
       setIsSubmitting(true);
-      try {
-        const profileRef = doc(db, 'profiles', user.uid);
-        await updateDoc(profileRef, {
-          displayName: data.displayName,
-          phone: data.phone,
-          segment: data.segment,
+      
+      const profileRef = doc(db, 'profiles', user.uid);
+      const updatedData = {
+        displayName: data.displayName,
+        phone: data.phone,
+        segment: data.segment,
+      };
+
+      updateDoc(profileRef, updatedData)
+        .then(() => {
+          toast({ title: "Profil mis à jour avec succès!" });
+        })
+        .catch(async (serverError) => {
+            if (serverError.code === 'permission-denied') {
+                 const permissionError = new FirestorePermissionError({
+                    path: profileRef.path,
+                    operation: 'update',
+                    requestResourceData: updatedData
+                });
+                errorEmitter.emit('permission-error', permissionError);
+            } else {
+                toast({ title: "Erreur", description: "La mise à jour du profil a échoué.", variant: "destructive" });
+            }
+        })
+        .finally(() => {
+            setIsSubmitting(false);
         });
-        toast({ title: "Profil mis à jour avec succès!" });
-      } catch (error) {
-        toast({ title: "Erreur", description: "La mise à jour du profil a échoué.", variant: "destructive" });
-      } finally {
-        setIsSubmitting(false);
-      }
     };
 
     if (loading || !user) {
