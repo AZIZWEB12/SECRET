@@ -20,7 +20,7 @@ import { Loader2 } from "lucide-react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { UserSegment } from "@/lib/types"
 import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth"
-import { doc, setDoc, serverTimestamp, getDocs, collection } from "firebase/firestore"
+import { doc, setDoc, serverTimestamp, getDocs, collection, query, where } from "firebase/firestore"
 import { auth, db } from "@/lib/firebase"
 import { errorEmitter } from "@/firebase/error-emitter"
 import { FirestorePermissionError } from "@/firebase/errors"
@@ -62,8 +62,27 @@ export function SignupForm() {
         const displayName = `${values.firstName} ${values.lastName}`;
         await updateProfile(user, { displayName });
         
-        const allProfilesSnapshot = await getDocs(collection(db, 'profiles')).catch(() => ({ empty: true }));
-        const isFirstUser = allProfilesSnapshot.empty;
+        // This is still not ideal, but it's the only way to check for the first user without making rules wide open.
+        // We will assume this check fails if permissions are not set, and default to 'user'.
+        const adminQuery = query(collection(db, 'profiles'), where("role", "==", "admin"));
+        
+        let isFirstUser = false;
+        try {
+            const adminSnapshot = await getDocs(adminQuery);
+            isFirstUser = adminSnapshot.empty;
+        } catch (err) {
+            // This will likely fail for non-admins due to security rules, which is what we want.
+            // We'll assume this user is not the first admin.
+            console.warn("Could not query for admins, assuming 'user' role. This is expected for non-admin users.");
+            const permissionError = new FirestorePermissionError({
+                path: 'profiles',
+                operation: 'list',
+            });
+            // We don't emit this one as it's an expected failure for normal users.
+            // We just use it to control the logic flow.
+            isFirstUser = false;
+        }
+
 
         const profileData = {
             displayName: displayName,
@@ -78,7 +97,15 @@ export function SignupForm() {
 
         const profileDocRef = doc(db, "profiles", user.uid);
         
-        await setDoc(profileDocRef, profileData);
+        await setDoc(profileDocRef, profileData).catch((serverError) => {
+            const permissionError = new FirestorePermissionError({
+                path: profileDocRef.path,
+                operation: 'create',
+                requestResourceData: profileData
+            });
+            errorEmitter.emit('permission-error', permissionError);
+            throw permissionError; // re-throw to stop execution
+        });
         
         toast({
             title: "Compte créé avec succès!",
@@ -88,22 +115,15 @@ export function SignupForm() {
 
     } catch (error: any) {
         console.error("Signup error:", error);
-
+        
         if (error.code === 'auth/email-already-in-use') {
             toast({
                 title: "Erreur d'inscription",
                 description: "Ce numéro de téléphone est déjà utilisé.",
                 variant: "destructive",
             });
-        } else if (error.code && error.code.includes('permission-denied')) {
-             const permissionError = new FirestorePermissionError({
-                path: 'profiles',
-                operation: 'create',
-                requestResourceData: { phone: values.phone /* don't leak all data */ }
-            });
-            errorEmitter.emit('permission-error', permissionError);
-        } else {
-            toast({
+        } else if (error.name !== 'FirestorePermissionError') { // Only show generic error if it's not a permission error
+             toast({
                 title: "Erreur d'inscription",
                 description: "Une erreur est survenue. Veuillez réessayer.",
                 variant: "destructive",
@@ -115,11 +135,8 @@ export function SignupForm() {
   }
 
   return (
-    <>
-      <div id="recaptcha-container"></div>
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <>
               <FormField
                 control={form.control}
                 name="firstName"
@@ -169,7 +186,7 @@ export function SignupForm() {
                       <Input type="password" placeholder="********" {...field} />
                     </FormControl>
                     <FormMessage />
-                  </FormItem>
+                  </Item>
                 )}
               />
               <FormField
@@ -193,13 +210,11 @@ export function SignupForm() {
                   </FormItem>
                 )}
               />
-            </>
           <Button type="submit" className="w-full" disabled={loading}>
             {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Créer mon compte
           </Button>
         </form>
       </Form>
-    </>
   )
 }
