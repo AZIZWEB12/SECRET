@@ -47,7 +47,7 @@ export function LoginForm() {
 
         toast({
             title: "Connexion réussie!",
-            description: "Bienvenue sur Concours Master Prep.",
+            description: "Bienvenue sur LE SECRET DU CONCOURS.",
         });
         router.push("/home");
     } catch(error: any) {

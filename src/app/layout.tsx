@@ -7,7 +7,7 @@ import AuthProvider from '@/providers/auth-provider';
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
 
 export const metadata: Metadata = {
-  title: 'Concours Master Prep',
+  title: 'LE SECRET DU CONCOURS',
   description: 'Plateforme de préparation aux concours du Burkina Faso.',
 };
 

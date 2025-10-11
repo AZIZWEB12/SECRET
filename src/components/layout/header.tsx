@@ -21,7 +21,7 @@ export function Header() {
           <Link href="/" className="mr-6 flex items-center space-x-2">
             <AppLogo />
             <span className="hidden font-bold sm:inline-block">
-              Concours Master Prep
+              LE SECRET DU CONCOURS
             </span>
           </Link>
           <nav className="flex items-center space-x-6 text-sm font-medium">
@@ -48,7 +48,7 @@ export function Header() {
               onClick={() => setSheetOpen(false)}
             >
               <AppLogo className="mr-2" />
-              <span className="font-bold">Concours Master Prep</span>
+              <span className="font-bold">LE SECRET DU CONCOURS</span>
             </Link>
             <div className="flex flex-col space-y-3">
               <MainNav onLinkClick={() => setSheetOpen(false)} />

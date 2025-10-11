@@ -9,7 +9,7 @@ export default function SignupPage() {
        <div className="absolute top-4 left-4">
         <Link href="/" className="flex items-center gap-2 text-foreground">
           <AppLogo />
-          <span className="font-bold">Concours Master Prep</span>
+          <span className="font-bold">LE SECRET DU CONCOURS</span>
         </Link>
       </div>
       <Card className="w-full max-w-sm">

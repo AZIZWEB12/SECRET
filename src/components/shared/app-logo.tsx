@@ -5,7 +5,7 @@ export function AppLogo({ className }: { className?: string }) {
     <svg
       viewBox="0 0 100 100"
       className={cn("h-8 w-8 text-primary", className)}
-      aria-label="Concours Master Prep Logo"
+      aria-label="LE SECRET DU CONCOURS Logo"
     >
       <g>
         <path

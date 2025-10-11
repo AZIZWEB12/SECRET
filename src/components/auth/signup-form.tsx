@@ -20,7 +20,7 @@ import { Loader2 } from "lucide-react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { UserSegment } from "@/lib/types"
 import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth"
-import { doc, setDoc, serverTimestamp } from "firebase/firestore"
+import { doc, setDoc, serverTimestamp, getDocs, collection, query } from "firebase/firestore"
 import { auth, db } from "@/lib/firebase"
 import { errorEmitter } from "@/firebase/error-emitter"
 import { FirestorePermissionError } from "@/firebase/errors"
@@ -67,7 +67,7 @@ export function SignupForm() {
             displayName: displayName,
             phone: values.phone,
             segment: values.segment,
-            role: 'user', 
+            role: 'user',
             isPremium: false,
             premiumUntil: null,
             createdAt: serverTimestamp(),
@@ -84,12 +84,13 @@ export function SignupForm() {
               requestResourceData: profileData
             });
             errorEmitter.emit('permission-error', permissionError);
+            // Re-throw the error to stop execution and be caught by the outer catch block
             throw permissionError;
           });
         
         toast({
             title: "Compte créé avec succès!",
-            description: "Bienvenue sur Concours Master Prep. Vous allez être redirigé.",
+            description: "Bienvenue sur LE SECRET DU CONCOURS. Vous allez être redirigé.",
         });
         router.push("/home");
 
