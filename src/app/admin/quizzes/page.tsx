@@ -150,7 +150,7 @@ export default function AdminQuizzesPage() {
                                     </div>
                                 ) : '-'}
                             </TableCell>
-                            <TableCell>{format(quiz.createdAt.toDate(), 'dd/MM/yyyy', { locale: fr })}</TableCell>
+                            <TableCell>{quiz.createdAt ? format(quiz.createdAt.toDate(), 'dd/MM/yyyy', { locale: fr }) : '-'}</TableCell>
                             <TableCell className="text-right">
                                <Button variant="ghost" size="icon" disabled>
                                     <Edit className="h-4 w-4" />
