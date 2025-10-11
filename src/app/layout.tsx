@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
+import 'katex/dist/katex.min.css';
 import { Toaster } from '@/components/ui/toaster';
 import AuthProvider from '@/providers/auth-provider';
 import { PwaInstallProvider } from '@/providers/pwa-install-provider';
