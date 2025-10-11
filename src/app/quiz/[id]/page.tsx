@@ -170,10 +170,14 @@ export default function TakeQuizPage() {
     setUserAnswers(newAnswers);
   };
   
-  if (loading || authLoading) {
+  if (authLoading) {
     return <AppLayout><div className="flex justify-center items-center h-96"><Loader2 className="h-8 w-8 animate-spin" /></div></AppLayout>;
   }
 
+  if (loading) {
+    return <AppLayout><div className="flex justify-center items-center h-96"><Loader2 className="h-8 w-8 animate-spin" /></div></AppLayout>;
+  }
+  
   if (error) {
     return (
       <AppLayout>
@@ -219,9 +223,11 @@ export default function TakeQuizPage() {
                     <CardDescription>{quiz.title}</CardDescription>
                 </CardHeader>
                 <CardContent className="text-center">
-                    <p className="text-6xl font-bold">{finalScore}%</p>
+                    <p className="text-6xl font-bold">
+                        {correctCount}<span className="text-4xl text-muted-foreground">/{quiz.questions.length}</span>
+                    </p>
                     <p className="text-muted-foreground mt-2">
-                        Vous avez répondu correctement à {correctCount} sur {quiz.questions.length} questions.
+                        Bonnes réponses
                     </p>
                     {finalScore >= 50 ? (
                         <div className="mt-4 text-green-600">Félicitations ! Excellent travail.</div>

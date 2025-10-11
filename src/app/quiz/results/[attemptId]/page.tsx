@@ -109,11 +109,13 @@ export default function QuizResultPage() {
                     <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 rounded-lg bg-muted/50 mb-6">
                         <div className='text-center sm:text-left'>
                             <p className="text-sm text-muted-foreground">Votre score</p>
-                            <p className="text-3xl font-bold">{attempt.score}%</p>
+                            <p className="text-3xl font-bold">
+                                {attempt.correctCount}<span className='text-xl text-muted-foreground'>/{attempt.totalQuestions}</span>
+                            </p>
                         </div>
                          <div className="w-full sm:w-auto flex-grow max-w-xs">
                              <Progress value={attempt.score} />
-                             <p className="text-center text-sm text-muted-foreground mt-1">{attempt.correctCount} / {attempt.totalQuestions} correctes</p>
+                             <p className="text-center text-sm text-muted-foreground mt-1">{attempt.score}% de réussite</p>
                          </div>
                     </div>
 
