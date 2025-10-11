@@ -84,11 +84,11 @@ export default function PdfsPage() {
                 ))}
 
                 {!loading && pdfs.length > 0 && pdfs.map((pdf) => (
-                    <Card key={pdf.id} className="flex flex-col">
+                    <Card key={pdf.id} className="flex flex-col hover:shadow-lg transition-shadow duration-300">
                         <CardHeader className="flex-grow">
                              <div className="flex justify-between items-center mb-2">
                                 <FileText className="h-8 w-8 text-primary" />
-                                {pdf.premiumOnly && <Badge variant="default"><Star className="mr-1 h-3 w-3"/>Premium</Badge>}
+                                {pdf.premiumOnly && <Badge variant="secondary" className="bg-orange-100 text-orange-800 border-orange-200"><Star className="mr-1 h-3 w-3"/>Premium</Badge>}
                             </div>
                             <CardTitle className="leading-tight">{pdf.title}</CardTitle>
                             <CardDescription>Segment: {pdf.segment}</CardDescription>
@@ -106,7 +106,7 @@ export default function PdfsPage() {
 
             {!loading && pdfs.length === 0 && !error && (
                 <div className="mt-8">
-                    <Card className="flex h-64 w-full flex-col items-center justify-center text-center">
+                    <Card className="flex h-64 w-full flex-col items-center justify-center text-center border-dashed">
                         <CardHeader>
                             <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
                                 <FileText className="h-8 w-8 text-primary" />

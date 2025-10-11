@@ -1,7 +1,7 @@
 'use client';
 
 import { AppLayout } from '@/components/layout/app-layout';
-import { Card, CardContent, CardHeader, CardTitle, CardFooter, CardDescription } from '@/components/ui/card';
+import { Card, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Film, Star, PlayCircle } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
@@ -17,6 +17,7 @@ import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/use-auth';
 import { Badge } from '@/components/ui/badge';
 import Image from 'next/image';
+import { CardDescription } from '@/components/ui/card';
 
 export default function VideosPage() {
     const [videos, setVideos] = useState<Video[]>([]);
@@ -85,10 +86,10 @@ export default function VideosPage() {
                 ))}
 
                 {!loading && videos.length > 0 && videos.map((video) => (
-                    <Card key={video.id} className="flex flex-col overflow-hidden">
+                    <Card key={video.id} className="flex flex-col overflow-hidden hover:shadow-lg transition-shadow duration-300">
                         <div className="relative aspect-video">
                             <Image src={video.thumbnailPath || `https://picsum.photos/seed/${video.id}/400/225`} alt={video.title} fill className="object-cover" />
-                             {video.premiumOnly && <Badge variant="default" className="absolute top-2 right-2"><Star className="mr-1 h-3 w-3"/>Premium</Badge>}
+                             {video.premiumOnly && <Badge variant="secondary" className="absolute top-2 right-2 bg-orange-100 text-orange-800 border-orange-200"><Star className="mr-1 h-3 w-3"/>Premium</Badge>}
                         </div>
                         <CardHeader className="flex-grow">
                             <CardTitle className="leading-tight">{video.title}</CardTitle>
@@ -106,7 +107,7 @@ export default function VideosPage() {
 
             {!loading && videos.length === 0 && !error && (
                 <div className="mt-8">
-                    <Card className="flex h-64 w-full flex-col items-center justify-center text-center">
+                    <Card className="flex h-64 w-full flex-col items-center justify-center text-center border-dashed">
                         <CardHeader>
                             <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
                                 <Film className="h-8 w-8 text-primary" />

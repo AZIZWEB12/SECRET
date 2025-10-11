@@ -3,7 +3,7 @@
 
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Header } from '@/components/layout/header';
 import { Footer } from '@/components/layout/footer';
 import Image from 'next/image';
@@ -84,7 +84,7 @@ export default function LandingPage() {
         <section id="features" className="w-full py-12 md:py-24 lg:py-32 bg-background">
           <div className="container px-4 md:px-6">
              <div className="flex flex-col items-center justify-center space-y-4 text-center mb-12 fade-in">
-                <div className="inline-block rounded-lg bg-secondary/20 px-3 py-1 text-sm text-secondary-foreground font-semibold">Nos Atouts</div>
+                <div className="inline-block rounded-lg bg-secondary/20 px-3 py-1 text-sm font-semibold text-secondary-foreground">Nos Atouts</div>
                 <h2 className="text-3xl font-bold tracking-tighter sm:text-5xl font-headline">Une Préparation Complète Pour Votre Réussite</h2>
                 <p className="max-w-[900px] text-muted-foreground md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
                   Quiz interactifs, cours d'experts, vidéos explicatives et un suivi personnalisé. Tout ce dont vous avez besoin pour exceller.

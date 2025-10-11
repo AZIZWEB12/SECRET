@@ -43,7 +43,7 @@ export function Header() {
               <span className="sr-only">Toggle Menu</span>
             </Button>
           </SheetTrigger>
-          <SheetContent side="left" className="pr-0 bg-primary text-primary-foreground">
+          <SheetContent side="left" className="pr-0 bg-primary text-primary-foreground border-r-0">
             <SheetTitle className="sr-only">Menu</SheetTitle>
             <Link
               href="/"
@@ -64,10 +64,10 @@ export function Header() {
 
 
         <div className="flex flex-1 items-center justify-end space-x-2">
-          <ThemeToggle />
           {!loading &&
             (user ? (
               <>
+                <ThemeToggle />
                 <Popover>
                     <PopoverTrigger asChild>
                          <Button variant="ghost" size="icon" className="text-primary-foreground hover:bg-white/20">
@@ -88,6 +88,7 @@ export function Header() {
               </>
             ) : (
               <>
+                <ThemeToggle />
                 <Button variant="ghost" asChild className="text-primary-foreground hover:bg-white/20 hover:text-primary-foreground">
                   <Link href="/login">Se connecter</Link>
                 </Button>

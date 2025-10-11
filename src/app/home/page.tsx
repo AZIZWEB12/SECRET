@@ -32,7 +32,7 @@ const contentCategories = [
     description: 'Consultez les cours',
     href: '/pdfs',
     icon: FileText,
-    color: 'text-secondary',
+    color: 'text-green-500',
   },
   {
     title: 'Vidéos',
@@ -139,8 +139,8 @@ export default function HomePage() {
                     Prêt à relever de nouveaux défis ? Voici vos outils pour réussir.
                 </p>
             </div>
-             <Badge variant={profile?.isPremium ? "default" : "secondary"} className="text-sm">
-                {profile?.isPremium ? <><Star className="mr-2 h-4 w-4" /> Premium</> : 'Gratuit'}
+             <Badge variant={profile?.isPremium ? "secondary" : "outline"} className="text-sm">
+                {profile?.isPremium ? <><Star className="mr-2 h-4 w-4 text-yellow-500" /> Premium</> : 'Gratuit'}
              </Badge>
         </div>
       </div>
@@ -191,7 +191,7 @@ export default function HomePage() {
                 </CardHeader>
                 <CardContent>
                     <Link href={category.href}>
-                        <Button variant="link" className="p-0">
+                        <Button variant="link" className="p-0 text-primary">
                             Commencer <ArrowRight className="h-4 w-4 ml-2 transition-transform duration-300 group-hover:translate-x-1" />
                         </Button>
                     </Link>

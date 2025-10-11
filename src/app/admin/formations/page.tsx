@@ -43,8 +43,8 @@ export default function AdminFormationsPage() {
       ) : (
          <Card className="flex h-96 w-full flex-col items-center justify-center text-center border-dashed">
             <CardHeader>
-                <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-secondary">
-                    <GraduationCap className="h-8 w-8 text-muted-foreground" />
+                <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
+                    <GraduationCap className="h-8 w-8 text-primary" />
                 </div>
                 <CardTitle>Aucune formation créée</CardTitle>
                 <CardDescription>
