@@ -31,21 +31,21 @@ const contentCategories = [
     description: 'Consultez les cours',
     href: '/pdfs',
     icon: FileText,
-    color: 'text-primary',
+    color: 'text-secondary',
   },
   {
     title: 'Vidéos',
     description: 'Apprenez en images',
     href: '/videos',
     icon: Film,
-    color: 'text-primary',
+    color: 'text-orange-500',
   },
   {
     title: 'Formations',
     description: 'Suivez nos parcours',
     href: '/formations',
     icon: GraduationCap,
-    color: 'text-primary',
+    color: 'text-pink-500',
   },
 ];
 
@@ -132,7 +132,7 @@ export default function HomePage() {
         <div className="flex justify-between items-start">
             <div>
                  <h1 className="text-3xl font-bold tracking-tight font-headline">
-                    Bonjour, {profile?.displayName || 'cher utilisateur'} !
+                    Bonjour, <span className="text-primary">{profile?.displayName || 'cher utilisateur'}</span> !
                 </h1>
                 <p className="text-muted-foreground">
                     Prêt à relever de nouveaux défis ? Voici vos outils pour réussir.
@@ -140,7 +140,7 @@ export default function HomePage() {
             </div>
              <Badge variant={profile?.isPremium ? "default" : "secondary"} className="text-sm">
                 {profile?.isPremium ? <><Star className="mr-2 h-4 w-4" /> Premium</> : 'Gratuit'}
-            </Badge>
+             </Badge>
         </div>
       </div>
       
@@ -155,11 +155,11 @@ export default function HomePage() {
         <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
              <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">Quiz faits</CardTitle>
+                    <CardTitle className="text-sm font-medium">Quiz Faits</CardTitle>
                     <BookOpen className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                    {loadingStats ? <Skeleton className="h-8 w-1/4" /> : <div className="text-2xl font-bold">{stats.quizCount}</div>}
+                    {loadingStats ? <Skeleton className="h-8 w-1/4" /> : <div className="text-2xl font-bold text-primary">{stats.quizCount}</div>}
                     <p className="text-xs text-muted-foreground">Nombre de quiz complétés</p>
                 </CardContent>
             </Card>
@@ -169,30 +169,35 @@ export default function HomePage() {
                     <Award className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                    {loadingStats ? <Skeleton className="h-8 w-1/4" /> : <div className="text-2xl font-bold">{stats.averageScore}%</div>}
+                    {loadingStats ? <Skeleton className="h-8 w-1/4" /> : <div className="text-2xl font-bold text-secondary">{stats.averageScore}%</div>}
                     <p className="text-xs text-muted-foreground">Précision moyenne aux quiz</p>
                 </CardContent>
             </Card>
         </div>
 
 
-      <div className="mt-12 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {contentCategories.map((category) => (
-          <Link href={category.href} key={category.title}>
-            <Card className="group transform transition-transform duration-300 hover:scale-105 hover:shadow-lg">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">{category.title}</CardTitle>
-                <category.icon className={`h-6 w-6 ${category.color}`} />
-              </CardHeader>
-              <CardDescription className="p-6 pt-0">
-                <div className="flex items-center justify-between">
-                  <span>{category.description}</span>
-                  <ArrowRight className="h-4 w-4 text-muted-foreground transition-transform duration-300 group-hover:translate-x-1" />
-                </div>
-              </CardDescription>
+      <div className="mt-12">
+        <h2 className="text-2xl font-bold tracking-tight font-headline mb-6">Explorer le contenu</h2>
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+            {contentCategories.map((category) => (
+            <Card key={category.title} className="group transform transition-transform duration-300 hover:-translate-y-1 hover:shadow-xl overflow-hidden">
+                <CardHeader>
+                  <div className={`mb-4 rounded-full p-3 bg-primary/10 w-fit`}>
+                    <category.icon className={`h-7 w-7 ${category.color}`} />
+                  </div>
+                  <CardTitle className="text-lg">{category.title}</CardTitle>
+                  <CardDescription>{category.description}</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <Link href={category.href}>
+                        <Button variant="link" className="p-0">
+                            Commencer <ArrowRight className="h-4 w-4 ml-2 transition-transform duration-300 group-hover:translate-x-1" />
+                        </Button>
+                    </Link>
+                </CardContent>
             </Card>
-          </Link>
-        ))}
+            ))}
+        </div>
       </div>
     </AppLayout>
   );
