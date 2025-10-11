@@ -10,19 +10,18 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { doc, updateDoc } from "firebase/firestore";
+import { doc, updateDoc, collection, query, where, onSnapshot } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
 import { FirestorePermissionError } from "@/firebase/errors";
 import { errorEmitter } from "@/firebase/error-emitter";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-
+import { QuizAttempt } from "@/lib/types";
 
 const profileFormSchema = z.object({
   displayName: z.string().min(2, "Le nom est trop court."),
@@ -32,11 +31,19 @@ const profileFormSchema = z.object({
 
 type ProfileFormData = z.infer<typeof profileFormSchema>;
 
+interface UserStats {
+    quizCount: number;
+    totalCorrect: number;
+    averageScore: number;
+}
+
 export default function ProfilePage() {
     const { user, profile, loading } = useAuth();
     const router = useRouter();
     const { toast } = useToast();
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [stats, setStats] = useState<UserStats>({ quizCount: 0, totalCorrect: 0, averageScore: 0 });
+    const [loadingStats, setLoadingStats] = useState(true);
 
     const form = useForm<ProfileFormData>({
       resolver: zodResolver(profileFormSchema),
@@ -59,6 +66,43 @@ export default function ProfilePage() {
             });
         }
     }, [user, profile, loading, router, form]);
+
+     useEffect(() => {
+      if (user) {
+          setLoadingStats(true);
+          const attemptsRef = collection(db, 'quizAttempts');
+          const q = query(attemptsRef, where("userId", "==", user.uid));
+
+          const unsubscribe = onSnapshot(q, 
+              (snapshot) => {
+                  const attempts = snapshot.docs.map(doc => doc.data() as QuizAttempt);
+                  const quizCount = attempts.length;
+                  
+                  if (quizCount > 0) {
+                      const totalCorrect = attempts.reduce((sum, acc) => sum + acc.correctCount, 0);
+                      const totalQuestions = attempts.reduce((sum, acc) => sum + acc.totalQuestions, 0);
+                      const averageScore = totalQuestions > 0 ? Math.round((totalCorrect / totalQuestions) * 100) : 0;
+                      setStats({ quizCount, totalCorrect, averageScore });
+                  } else {
+                      setStats({ quizCount: 0, totalCorrect: 0, averageScore: 0 });
+                  }
+                  setLoadingStats(false);
+              },
+              (err) => {
+                  console.error("Error fetching quiz attempts for stats:", err);
+                   const permissionError = new FirestorePermissionError({
+                      path: attemptsRef.path,
+                      operation: 'list',
+                  });
+                  errorEmitter.emit('permission-error', permissionError);
+                  setLoadingStats(false);
+              }
+          );
+          
+          return () => unsubscribe();
+      }
+  }, [user]);
+
 
     const getInitials = (name?: string | null) => {
         if (!name) return 'U';
@@ -93,7 +137,7 @@ export default function ProfilePage() {
         });
     };
 
-    if (loading || !user) {
+    if (loading || !user || !profile) {
         return (
             <AppLayout>
                 <Skeleton className="h-32 w-full" />
@@ -111,16 +155,16 @@ export default function ProfilePage() {
                 <div className="flex flex-col md:flex-row items-center gap-6">
                     <Avatar className="h-24 w-24">
                         <AvatarImage src={user.photoURL ?? ''} />
-                        <AvatarFallback className="text-3xl">{getInitials(profile?.displayName)}</AvatarFallback>
+                        <AvatarFallback className="text-3xl">{getInitials(profile.displayName)}</AvatarFallback>
                     </Avatar>
                     <div className="text-center md:text-left">
-                        <h1 className="text-3xl font-bold font-headline">{profile?.displayName}</h1>
-                        <p className="text-muted-foreground">{user.phoneNumber || profile?.phone}</p>
+                        <h1 className="text-3xl font-bold font-headline">{profile.displayName}</h1>
+                        <p className="text-muted-foreground">{user.phoneNumber || profile.phone}</p>
                         <div className="mt-2 flex items-center gap-2 justify-center md:justify-start">
-                            <Badge variant={profile?.isPremium ? "default" : "secondary"}>
-                                {profile?.isPremium ? "Premium" : "Gratuit"}
+                            <Badge variant={profile.isPremium ? "default" : "secondary"}>
+                                {profile.isPremium ? "Premium" : "Gratuit"}
                             </Badge>
-                            <Badge variant="outline">{profile?.segment === 'direct' ? 'Concours Direct' : 'Concours Professionnel'}</Badge>
+                            <Badge variant="outline">{profile.segment === 'direct' ? 'Concours Direct' : 'Concours Professionnel'}</Badge>
                         </div>
                     </div>
                 </div>
@@ -195,19 +239,28 @@ export default function ProfilePage() {
                             <CardDescription>Votre performance globale.</CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-4">
-                            <div className="flex justify-between">
-                                <span className="text-muted-foreground">Quiz terminés</span>
-                                <span className="font-bold">0</span>
-                            </div>
-                            <div className="flex justify-between">
-                                <span className="text-muted-foreground">Bonnes réponses</span>
-                                <span className="font-bold">0</span>
-                            </div>
-                            <div className="flex justify-between">
-                                <span className="text-muted-foreground">Score moyen</span>
-                                <span className="font-bold">0%</span>
-                            </div>
-                            <p className="text-xs text-muted-foreground pt-4">Les statistiques réelles seront bientôt disponibles.</p>
+                           {loadingStats ? (
+                                <>
+                                    <div className="flex justify-between"><Skeleton className="h-5 w-2/3" /> <Skeleton className="h-5 w-1/4" /></div>
+                                    <div className="flex justify-between"><Skeleton className="h-5 w-2/3" /> <Skeleton className="h-5 w-1/4" /></div>
+                                    <div className="flex justify-between"><Skeleton className="h-5 w-2/3" /> <Skeleton className="h-5 w-1/4" /></div>
+                                </>
+                           ) : (
+                               <>
+                                    <div className="flex justify-between">
+                                        <span className="text-muted-foreground">Quiz terminés</span>
+                                        <span className="font-bold">{stats.quizCount}</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span className="text-muted-foreground">Bonnes réponses</span>
+                                        <span className="font-bold">{stats.totalCorrect}</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span className="text-muted-foreground">Score moyen</span>
+                                        <span className="font-bold">{stats.averageScore}%</span>
+                                    </div>
+                               </>
+                           )}
                         </CardContent>
                     </Card>
                 </div>
