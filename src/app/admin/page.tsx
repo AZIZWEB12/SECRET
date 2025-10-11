@@ -59,13 +59,12 @@ export default function AdminDashboardPage() {
                         setError("Erreur de lecture des paiements.");
                         setLoadingStats(false);
                         const permissionError = new FirestorePermissionError({
-                            path: q.toString(), // Simplified path for query
+                            path: 'payments', 
                             operation: 'list',
                         });
                         errorEmitter.emit('permission-error', permissionError);
                     }
                 );
-                // This will be cleaned up by the main stats unsubscribe
                 return () => unsubPayments();
             }, 
             (err) => {
@@ -91,7 +90,7 @@ export default function AdminDashboardPage() {
                 setError("Erreur de lecture des utilisateurs récents.");
                 setLoadingUsers(false);
                  const permissionError = new FirestorePermissionError({
-                    path: 'profiles', // simplified path for query
+                    path: 'profiles',
                     operation: 'list',
                 });
                 errorEmitter.emit('permission-error', permissionError);

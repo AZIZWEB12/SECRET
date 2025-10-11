@@ -1,10 +1,11 @@
+
 'use client';
 
 import { AppLayout } from '@/components/layout/app-layout';
 import { useAuth } from '@/hooks/use-auth';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import Link from 'next/link';
-import { ArrowRight, BookOpen, FileText, Film, GraduationCap, CheckCircle, Target, Award, Star } from 'lucide-react';
+import { ArrowRight, BookOpen, FileText, Film, GraduationCap, CheckCircle, Award, Star } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -14,6 +15,8 @@ import { QuizAttempt } from '@/lib/types';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertTriangle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { FirestorePermissionError } from '@/firebase/errors';
+import { errorEmitter } from '@/firebase/error-emitter';
 
 const contentCategories = [
   {
@@ -88,9 +91,13 @@ export default function HomePage() {
                   setError(null);
               },
               (err) => {
-                  console.error("Error fetching quiz attempts:", err);
                   setError("Erreur de chargement des statistiques. Vérifiez vos permissions.");
                   setLoadingStats(false);
+                  const permissionError = new FirestorePermissionError({
+                      path: `quizAttempts`,
+                      operation: 'list',
+                  });
+                  errorEmitter.emit('permission-error', permissionError);
               }
           );
           

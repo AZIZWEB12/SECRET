@@ -1,3 +1,4 @@
+
 'use client'
 
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -63,12 +64,21 @@ export function SignupForm() {
         await updateProfile(user, { displayName });
         
         const profilesCollectionRef = collection(db, "profiles");
-        // Check if there are any users AT ALL. We need permission for this.
         const q = query(profilesCollectionRef, limit(1));
-        const initialUserCheck = await getDocs(q);
-        // If the snapshot is empty, this is the very first user.
-        const isFirstUser = initialUserCheck.empty;
-
+        
+        let isFirstUser = false;
+        try {
+            const initialUserCheck = await getDocs(q);
+            isFirstUser = initialUserCheck.empty;
+        } catch (serverError) {
+             const permissionError = new FirestorePermissionError({
+                path: profilesCollectionRef.path,
+                operation: 'list',
+             });
+             errorEmitter.emit('permission-error', permissionError);
+             throw permissionError;
+        }
+        
         const profileData = {
             displayName: displayName,
             phone: values.phone,
@@ -82,18 +92,14 @@ export function SignupForm() {
 
         const profileDocRef = doc(db, "profiles", user.uid);
         
-        // This is the operation that often fails due to permissions.
         await setDoc(profileDocRef, profileData)
           .catch(async (serverError) => {
-            // We create a detailed error for better debugging
             const permissionError = new FirestorePermissionError({
               path: profileDocRef.path,
               operation: 'create',
               requestResourceData: profileData
             });
-            // We emit it to our global listener
             errorEmitter.emit('permission-error', permissionError);
-            // We re-throw it to be caught by the outer catch block
             throw permissionError;
           });
         
@@ -104,15 +110,13 @@ export function SignupForm() {
         router.push("/home");
 
     } catch (error: any) {
-        console.error("Signup error:", error);
-        
         if (error.code === 'auth/email-already-in-use') {
             toast({
                 title: "Erreur d'inscription",
                 description: "Ce numéro de téléphone est déjà utilisé.",
                 variant: "destructive",
             });
-        } else if (error instanceof FirestorePermissionError || error.code?.includes('permission-denied')) {
+        } else if (error instanceof FirestorePermissionError) {
              toast({
                 title: "Erreur de Permission",
                 description: "La création de votre profil a été bloquée. Veuillez contacter le support.",

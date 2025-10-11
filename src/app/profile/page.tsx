@@ -1,3 +1,4 @@
+
 'use client';
 
 import { AppLayout } from "@/components/layout/app-layout";
@@ -89,9 +90,8 @@ export default function ProfilePage() {
                   setLoadingStats(false);
               },
               (err) => {
-                  console.error("Error fetching quiz attempts for stats:", err);
                    const permissionError = new FirestorePermissionError({
-                      path: attemptsRef.path,
+                      path: `quizAttempts`,
                       operation: 'list',
                   });
                   errorEmitter.emit('permission-error', permissionError);

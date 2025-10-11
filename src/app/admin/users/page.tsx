@@ -1,3 +1,4 @@
+
 'use client';
 import { AppLayout } from "@/components/layout/app-layout";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -19,7 +20,7 @@ import { useToast } from "@/hooks/use-toast";
 export default function AdminUsersPage() {
     const [users, setUsers] = useState<Profile[]>([]);
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<Error | null>(null);
+    const [error, setError] = useState<string | null>(null);
     const [updatingUserId, setUpdatingUserId] = useState<string | null>(null);
     const { toast } = useToast();
 
@@ -34,7 +35,7 @@ export default function AdminUsersPage() {
             },
             (serverError) => {
                 setLoading(false);
-                setError(serverError);
+                setError("Vous n'avez pas les droits nécessaires pour consulter la liste des utilisateurs.");
                 const permissionError = new FirestorePermissionError({
                     path: usersCollectionRef.path,
                     operation: 'list',
@@ -48,22 +49,26 @@ export default function AdminUsersPage() {
     const togglePremium = async (userId: string, currentStatus: boolean) => {
         setUpdatingUserId(userId);
         const userDocRef = doc(db, 'profiles', userId);
-        try {
-            await updateDoc(userDocRef, { isPremium: !currentStatus });
-            toast({
-                title: "Succès",
-                description: `Statut premium de l'utilisateur mis à jour.`,
+        const updatedData = { isPremium: !currentStatus };
+        
+        updateDoc(userDocRef, updatedData)
+            .then(() => {
+                 toast({
+                    title: "Succès",
+                    description: `Statut premium de l'utilisateur mis à jour.`,
+                });
+            })
+            .catch(async (serverError) => {
+                const permissionError = new FirestorePermissionError({
+                    path: userDocRef.path,
+                    operation: 'update',
+                    requestResourceData: updatedData
+                });
+                errorEmitter.emit('permission-error', permissionError);
+            })
+            .finally(() => {
+                 setUpdatingUserId(null);
             });
-        } catch (serverError) {
-            const permissionError = new FirestorePermissionError({
-                path: userDocRef.path,
-                operation: 'update',
-                requestResourceData: { isPremium: !currentStatus }
-            });
-            errorEmitter.emit('permission-error', permissionError);
-        } finally {
-            setUpdatingUserId(null);
-        }
     };
 
     return (
@@ -75,7 +80,7 @@ export default function AdminUsersPage() {
                     <AlertTriangle className="h-4 w-4" />
                     <AlertTitle>Erreur de permission</AlertTitle>
                     <AlertDescription>
-                        Vous n'avez pas les droits nécessaires pour consulter la liste des utilisateurs.
+                        {error}
                     </AlertDescription>
                 </Alert>
             )}
