@@ -35,6 +35,7 @@ export interface Quiz {
   segment: UserSegment;
   difficulty: QuizDifficulty;
   premiumOnly: boolean;
+  durationMinutes?: number; // Add duration in minutes
   questions: QuizQuestionData[];
   createdBy?: string;
   createdAt: Timestamp;

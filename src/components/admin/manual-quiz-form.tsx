@@ -15,12 +15,16 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { PlusCircle, Save, Trash2 } from 'lucide-react';
+import { PlusCircle, Save, Trash2, Wand2, Loader2 } from 'lucide-react';
 import { QuizDifficulty, UserSegment } from '@/lib/types';
 import { Switch } from '../ui/switch';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Textarea } from '../ui/textarea';
 import { Checkbox } from '../ui/checkbox';
+import { generateQuizQuestions, GenerateQuizQuestionsInput } from '@/ai/flows/generate-quiz-questions';
+import { useState } from 'react';
+import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
+import { useToast } from '@/hooks/use-toast';
 
 const optionSchema = z.object({
   text: z.string().min(1, "Le texte de l'option ne peut pas être vide."),
@@ -38,6 +42,7 @@ const manualQuizFormSchema = z.object({
   difficulty: z.enum(['facile', 'moyen', 'difficile'], { required_error: 'Veuillez choisir une difficulté.' }),
   segment: z.enum(['direct', 'professionnel'], { required_error: 'Veuillez choisir un segment.' }),
   premiumOnly: z.boolean().default(false),
+  durationMinutes: z.number().min(0, "La durée doit être un nombre positif.").optional(),
   questions: z.array(questionSchema).min(1, 'Le quiz doit contenir au moins une question.'),
 });
 
@@ -48,21 +53,53 @@ interface ManualQuizFormProps {
     onCancel: () => void;
 }
 
-const QuestionFields = ({ control, index, remove }: { control: Control<ManualQuizFormValues>; index: number; remove: (index: number) => void; }) => {
-    const { fields, append, remove: removeOption } = useFieldArray({
+const QuestionFields = ({ control, index, remove, onGenerateQuestion }: { control: Control<ManualQuizFormValues>; index: number; remove: (index: number) => void; onGenerateQuestion: (index: number, topic: string) => Promise<void> }) => {
+    const { fields } = useFieldArray({
         control,
         name: `questions.${index}.options`
     });
+    
+    const [isGenerating, setIsGenerating] = useState(false);
+    const [aiTopic, setAiTopic] = useState('');
+    const { toast } = useToast();
+
+    const handleGenerate = async () => {
+        if (!aiTopic) {
+            toast({ variant: 'destructive', title: 'Veuillez entrer un sujet pour la question.'})
+            return;
+        }
+        setIsGenerating(true);
+        await onGenerateQuestion(index, aiTopic);
+        setIsGenerating(false);
+    }
     
     const optionLabels = ['A', 'B', 'C', 'D'];
 
     return (
         <Card className="relative bg-muted/30">
             <CardHeader>
-                <CardTitle className="text-lg">Question {index + 1}</CardTitle>
-                <Button type="button" variant="ghost" size="icon" className="absolute top-2 right-2 text-destructive" onClick={() => remove(index)}>
-                    <Trash2 className="h-4 w-4" />
-                </Button>
+                <div className="flex justify-between items-center">
+                    <CardTitle className="text-lg">Question {index + 1}</CardTitle>
+                    <div className="flex items-center gap-2">
+                         <Popover>
+                            <PopoverTrigger asChild>
+                                <Button type="button" variant="outline" size="sm"><Wand2 className="mr-2 h-4 w-4" /> Générer</Button>
+                            </PopoverTrigger>
+                            <PopoverContent>
+                                <div className="space-y-4">
+                                    <FormLabel>Générer cette question par IA</FormLabel>
+                                    <Input placeholder="Sujet de la question..." value={aiTopic} onChange={(e) => setAiTopic(e.target.value)} />
+                                    <Button onClick={handleGenerate} disabled={isGenerating} className="w-full">
+                                        {isGenerating ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Génération...</> : 'Générer la question'}
+                                    </Button>
+                                </div>
+                            </PopoverContent>
+                        </Popover>
+                        <Button type="button" variant="ghost" size="icon" className="text-destructive" onClick={() => remove(index)}>
+                            <Trash2 className="h-4 w-4" />
+                        </Button>
+                    </div>
+                </div>
             </CardHeader>
             <CardContent className="space-y-4">
                 <FormField
@@ -91,7 +128,7 @@ const QuestionFields = ({ control, index, remove }: { control: Control<ManualQui
                                         key={label}
                                         control={control}
                                         name={`questions.${index}.correctAnswers`}
-                                        render={({ field }) => {
+                                        render={({ field: checkboxField }) => {
                                         return (
                                             <FormItem
                                                 key={label}
@@ -99,12 +136,13 @@ const QuestionFields = ({ control, index, remove }: { control: Control<ManualQui
                                             >
                                                 <FormControl>
                                                 <Checkbox
-                                                    checked={field.value?.includes(label)}
+                                                    checked={checkboxField.value?.includes(label)}
                                                     onCheckedChange={(checked) => {
+                                                    const currentValues = checkboxField.value || [];
                                                     return checked
-                                                        ? field.onChange([...(field.value || []), label])
-                                                        : field.onChange(
-                                                            field.value?.filter(
+                                                        ? checkboxField.onChange([...currentValues, label])
+                                                        : checkboxField.onChange(
+                                                            currentValues?.filter(
                                                                 (value) => value !== label
                                                             )
                                                             )
@@ -161,7 +199,6 @@ const QuestionFields = ({ control, index, remove }: { control: Control<ManualQui
     );
 }
 
-
 export function ManualQuizForm({ onSubmit, onCancel }: ManualQuizFormProps) {
   const form = useForm<ManualQuizFormValues>({
     resolver: zodResolver(manualQuizFormSchema),
@@ -172,10 +209,12 @@ export function ManualQuizForm({ onSubmit, onCancel }: ManualQuizFormProps) {
     },
   });
   
-  const { fields, append, remove } = useFieldArray({
+  const { fields, append, remove, update } = useFieldArray({
     control: form.control,
     name: "questions"
   });
+
+  const { toast } = useToast();
 
   const addQuestion = () => {
     append({
@@ -186,6 +225,32 @@ export function ManualQuizForm({ onSubmit, onCancel }: ManualQuizFormProps) {
     });
   }
   
+  const handleGenerateQuestion = async (index: number, topic: string) => {
+    const input: GenerateQuizQuestionsInput = {
+      topic,
+      difficulty: form.getValues('difficulty') || 'moyen',
+      numberOfQuestions: 1
+    };
+
+    try {
+        const result = await generateQuizQuestions(input);
+        if (result.questions && result.questions.length > 0) {
+            const newQuestion = result.questions[0];
+            const correctAnswers = newQuestion.options.filter(o => o.is_correct).map(o => o.label);
+
+            update(index, {
+                question: newQuestion.question,
+                options: newQuestion.options.map(o => ({ text: o.text })),
+                correctAnswers: correctAnswers,
+                explanation: newQuestion.explanation
+            });
+            toast({ title: 'Question générée !' });
+        }
+    } catch(e) {
+        toast({ variant: 'destructive', title: 'Erreur de génération', description: "L'IA n'a pas pu générer la question."})
+    }
+  }
+
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 pt-4 max-h-[70vh] overflow-y-auto p-1 pr-4">
@@ -247,6 +312,28 @@ export function ManualQuizForm({ onSubmit, onCancel }: ManualQuizFormProps) {
             )}
           />
         </div>
+         <FormField
+          control={form.control}
+          name="durationMinutes"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Durée du quiz (en minutes)</FormLabel>
+              <FormControl>
+                <Input 
+                    type="number" 
+                    placeholder="Ex: 30" 
+                    {...field} 
+                    onChange={e => field.onChange(e.target.value === '' ? undefined : parseInt(e.target.value, 10))}
+                    value={field.value ?? ''}
+                />
+              </FormControl>
+               <FormDescription>
+                Laissez vide pour un temps illimité.
+              </FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
         <FormField
           control={form.control}
           name="premiumOnly"
@@ -270,7 +357,7 @@ export function ManualQuizForm({ onSubmit, onCancel }: ManualQuizFormProps) {
 
         <div className="space-y-4">
             {fields.map((field, index) => (
-                <QuestionFields key={field.id} control={form.control} index={index} remove={remove} />
+                <QuestionFields key={field.id} control={form.control} index={index} remove={remove} onGenerateQuestion={handleGenerateQuestion} />
             ))}
         </div>
 
@@ -282,7 +369,7 @@ export function ManualQuizForm({ onSubmit, onCancel }: ManualQuizFormProps) {
             <Button type="button" variant="outline" onClick={onCancel}>Annuler</Button>
             <Button type="submit">
                 <Save className="mr-2 h-4 w-4" />
-                Vérifier et Sauvegarder
+                Sauvegarder le Quiz
             </Button>
         </div>
       </form>

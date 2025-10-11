@@ -4,7 +4,7 @@ import { AppLayout } from '@/components/layout/app-layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { BookOpen, PlusCircle, Trash2, Edit, Star } from 'lucide-react';
+import { BookOpen, PlusCircle, Trash2, Edit, Star, Clock } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { collection, onSnapshot, query, orderBy, deleteDoc, doc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
@@ -95,6 +95,7 @@ export default function AdminQuizzesPage() {
                             <TableHead>Segment</TableHead>
                              <TableHead>Accès</TableHead>
                             <TableHead>Difficulté</TableHead>
+                            <TableHead>Durée</TableHead>
                             <TableHead>Créé le</TableHead>
                             <TableHead>Actions</TableHead>
                         </TableRow>
@@ -106,6 +107,7 @@ export default function AdminQuizzesPage() {
                                 <TableCell><Skeleton className="h-5 w-24" /></TableCell>
                                 <TableCell><Skeleton className="h-6 w-20" /></TableCell>
                                 <TableCell><Skeleton className="h-6 w-20" /></TableCell>
+                                <TableCell><Skeleton className="h-5 w-16" /></TableCell>
                                 <TableCell><Skeleton className="h-5 w-28" /></TableCell>
                                 <TableCell><div className="flex gap-2"><Skeleton className="h-8 w-8" /><Skeleton className="h-8 w-8" /></div></TableCell>
                             </TableRow>
@@ -122,6 +124,7 @@ export default function AdminQuizzesPage() {
                         <TableHead>Segment</TableHead>
                         <TableHead>Accès</TableHead>
                         <TableHead>Difficulté</TableHead>
+                        <TableHead>Durée</TableHead>
                         <TableHead>Créé le</TableHead>
                         <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
@@ -139,6 +142,14 @@ export default function AdminQuizzesPage() {
                                 )}
                             </TableCell>
                             <TableCell>{quiz.difficulty}</TableCell>
+                             <TableCell>
+                                {quiz.durationMinutes ? (
+                                    <div className="flex items-center gap-1">
+                                        <Clock className="h-4 w-4 text-muted-foreground" />
+                                        <span>{quiz.durationMinutes} min</span>
+                                    </div>
+                                ) : '-'}
+                            </TableCell>
                             <TableCell>{format(quiz.createdAt.toDate(), 'dd/MM/yyyy', { locale: fr })}</TableCell>
                             <TableCell className="text-right">
                                <Button variant="ghost" size="icon" disabled>
