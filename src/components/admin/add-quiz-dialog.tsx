@@ -7,47 +7,55 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
 } from '@/components/ui/dialog';
 import { Button } from '../ui/button';
 import { GenerateQuizForm } from './generate-quiz-form';
 import {
   GenerateQuizQuestionsInput,
   GenerateQuizQuestionsOutput,
+  generateQuizQuestions,
 } from '@/ai/flows/generate-quiz-questions';
-import { generateQuizQuestions } from '@/ai/flows/generate-quiz-questions';
-import { Loader2, Wand2, Save } from 'lucide-react';
+import { Loader2, Wand2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
-import { Quiz, QuizDifficulty, UserSegment } from '@/lib/types';
+import { Quiz, QuizDifficulty, QuizQuestionData, UserSegment } from '@/lib/types';
 import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
+import { ManualQuizForm, ManualQuizFormValues } from './manual-quiz-form';
+import { ReviewQuiz } from './review-quiz';
 
 interface AddQuizDialogProps {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
 }
 
+type GeneratedData = {
+  title: string;
+  segment: UserSegment;
+  difficulty: QuizDifficulty;
+  premiumOnly: boolean;
+  questions: QuizQuestionData[];
+};
+
 export function AddQuizDialog({ isOpen, onOpenChange }: AddQuizDialogProps) {
   const [step, setStep] = useState<'form' | 'generating' | 'review'>('form');
-  const [generatedData, setGeneratedData] = useState<
-    (GenerateQuizQuestionsOutput & { title: string; segment: UserSegment; difficulty: QuizDifficulty }) | null
-  >(null);
+  const [generatedData, setGeneratedData] = useState<GeneratedData | null>(null);
   const { toast } = useToast();
 
   const handleGenerate = async (values: {
     topic: string;
     difficulty: QuizDifficulty;
     segment: UserSegment;
+    premiumOnly: boolean;
   }) => {
     setStep('generating');
     try {
       const input: GenerateQuizQuestionsInput = {
         topic: values.topic,
         difficulty: values.difficulty,
-        numberOfQuestions: 5, // You can make this configurable
+        numberOfQuestions: 5,
       };
       const result = await generateQuizQuestions(input);
       setGeneratedData({
@@ -55,6 +63,7 @@ export function AddQuizDialog({ isOpen, onOpenChange }: AddQuizDialogProps) {
         title: values.topic,
         segment: values.segment,
         difficulty: values.difficulty,
+        premiumOnly: values.premiumOnly,
       });
       setStep('review');
     } catch (error) {
@@ -67,103 +76,118 @@ export function AddQuizDialog({ isOpen, onOpenChange }: AddQuizDialogProps) {
       setStep('form');
     }
   };
+  
+  const handleManualSubmit = (values: ManualQuizFormValues) => {
+    setGeneratedData({
+      title: values.title,
+      segment: values.segment,
+      difficulty: values.difficulty,
+      premiumOnly: values.premiumOnly,
+      questions: values.questions.map(q => ({
+        question: q.question,
+        options: q.options.map((opt, index) => ({
+            label: ['A', 'B', 'C', 'D'][index],
+            text: opt.text,
+            is_correct: q.correctAnswers.includes(['A', 'B', 'C', 'D'][index]),
+        })),
+        explanation: q.explanation || '',
+      }))
+    });
+    setStep('review');
+  }
 
-    const handleSaveQuiz = async () => {
-        if (!generatedData) return;
-        setStep('generating'); // Show loader while saving
+  const handleSaveQuiz = async () => {
+    if (!generatedData) return;
+    setStep('generating'); // Show loader while saving
 
-        try {
-            const quizCollectionRef = collection(db, 'quizzes');
-            const newQuizData = {
-                title: generatedData.title,
-                segment: generatedData.segment,
-                difficulty: generatedData.difficulty,
-                questions: generatedData.questions,
-                createdAt: serverTimestamp(),
-            };
-            
-            await addDoc(quizCollectionRef, newQuizData);
+    try {
+      const quizCollectionRef = collection(db, 'quizzes');
+      const newQuizData = {
+        ...generatedData,
+        createdAt: serverTimestamp(),
+      };
 
-            toast({
-                title: 'Quiz sauvegardé !',
-                description: 'Le nouveau quiz a été ajouté à la collection.',
-            });
-            handleClose();
-        } catch (error) {
-             errorEmitter.emit('permission-error', new FirestorePermissionError({
-                path: 'quizzes',
-                operation: 'create',
-            }));
-            setStep('review'); // Go back to review step on error
-        }
+      await addDoc(quizCollectionRef, newQuizData);
+
+      toast({
+        title: 'Quiz sauvegardé !',
+        description: 'Le nouveau quiz a été ajouté à la collection.',
+      });
+      handleClose();
+    } catch (error) {
+      errorEmitter.emit(
+        'permission-error',
+        new FirestorePermissionError({
+          path: 'quizzes',
+          operation: 'create',
+        })
+      );
+      setStep('review'); // Go back to review step on error
     }
-
+  };
 
   const handleClose = () => {
     setStep('form');
     setGeneratedData(null);
     onOpenChange(false);
   };
+  
+  const handleBackToForm = () => {
+    setStep('form');
+    setGeneratedData(null);
+  }
 
   return (
-    <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="max-w-3xl">
+    <Dialog open={isOpen} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-4xl">
         <DialogHeader>
           <DialogTitle>
             {step === 'form' && 'Créer un nouveau quiz'}
-            {step === 'generating' && 'Génération en cours...'}
+            {step === 'generating' && 'Opération en cours...'}
             {step === 'review' && `Révision du quiz : ${generatedData?.title}`}
           </DialogTitle>
           <DialogDescription>
-            {step === 'form' && 'Utilisez l\'IA pour générer automatiquement les questions de votre quiz.'}
-            {step === 'generating' && 'Veuillez patienter pendant que l\'IA prépare votre quiz.'}
-            {step === 'review' && 'Vérifiez les questions générées avant de sauvegarder le quiz.'}
+            {step === 'form' && 'Choisissez de générer un quiz avec l\'IA ou de le créer manuellement.'}
+            {step === 'generating' && 'Veuillez patienter...'}
+            {step === 'review' && 'Vérifiez les informations et les questions avant de sauvegarder.'}
           </DialogDescription>
         </DialogHeader>
 
-        {step === 'form' && <GenerateQuizForm onGenerate={handleGenerate} />}
-        
+        {step === 'form' && (
+          <Tabs defaultValue="ai" className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="ai"><Wand2 className="mr-2 h-4 w-4" />Générer avec l'IA</TabsTrigger>
+              <TabsTrigger value="manual">Créer Manuellement</TabsTrigger>
+            </TabsList>
+            <TabsContent value="ai">
+              <GenerateQuizForm onGenerate={handleGenerate} onCancel={handleClose} />
+            </TabsContent>
+            <TabsContent value="manual">
+                <ManualQuizForm onSubmit={handleManualSubmit} onCancel={handleClose} />
+            </TabsContent>
+          </Tabs>
+        )}
+
         {step === 'generating' && (
-            <div className="flex flex-col items-center justify-center h-64 gap-4">
-                <Loader2 className="h-12 w-12 animate-spin text-primary" />
-                <p className="text-muted-foreground">Création des questions...</p>
-            </div>
+          <div className="flex flex-col items-center justify-center h-96 gap-4">
+            <Loader2 className="h-12 w-12 animate-spin text-primary" />
+            <p className="text-muted-foreground">Veuillez patienter...</p>
+          </div>
         )}
 
         {step === 'review' && generatedData && (
-             <div className="max-h-[60vh] overflow-y-auto p-1 pr-4 space-y-4">
-                {generatedData.questions.map((q, index) => (
-                    <Card key={index}>
-                        <CardHeader>
-                            <CardTitle className="text-lg">Question {index + 1}</CardTitle>
-                            <CardDescription>{q.question}</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                             <ul className="space-y-2 text-sm">
-                                {q.options.map(opt => (
-                                    <li key={opt.label} className={`p-2 rounded-md ${opt.is_correct ? 'bg-green-100' : ''}`}>
-                                        <strong>{opt.label}:</strong> {opt.text}
-                                    </li>
-                                ))}
-                            </ul>
-                            <p className="mt-4 text-xs text-muted-foreground italic">
-                                <strong>Explication :</strong> {q.explanation}
-                            </p>
-                        </CardContent>
-                    </Card>
-                ))}
-            </div>
+          <ReviewQuiz 
+            quizData={generatedData} 
+            onSave={handleSaveQuiz}
+            onCancel={handleClose}
+            onBack={handleBackToForm}
+          />
         )}
 
-        <DialogFooter>
-            <Button variant="outline" onClick={handleClose}>Annuler</Button>
-             {step === 'review' && (
-                <Button onClick={handleSaveQuiz}>
-                    <Save className="mr-2 h-4 w-4" />
-                    Sauvegarder le Quiz
-                </Button>
-            )}
-        </DialogFooter>
+        {/* Hide default footer when on form step */}
+        {step !== 'form' && step !== 'review' && (
+             <Button variant="outline" onClick={handleClose}>Annuler</Button>
+        )}
       </DialogContent>
     </Dialog>
   );

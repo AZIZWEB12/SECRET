@@ -4,7 +4,7 @@ import { AppLayout } from '@/components/layout/app-layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { BookOpen, PlusCircle, Trash2, Edit } from 'lucide-react';
+import { BookOpen, PlusCircle, Trash2, Edit, Star } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { collection, onSnapshot, query, orderBy, deleteDoc, doc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
@@ -93,6 +93,7 @@ export default function AdminQuizzesPage() {
                         <TableRow>
                             <TableHead>Titre</TableHead>
                             <TableHead>Segment</TableHead>
+                             <TableHead>Accès</TableHead>
                             <TableHead>Difficulté</TableHead>
                             <TableHead>Créé le</TableHead>
                             <TableHead>Actions</TableHead>
@@ -103,6 +104,7 @@ export default function AdminQuizzesPage() {
                             <TableRow key={i}>
                                 <TableCell><Skeleton className="h-5 w-32" /></TableCell>
                                 <TableCell><Skeleton className="h-5 w-24" /></TableCell>
+                                <TableCell><Skeleton className="h-6 w-20" /></TableCell>
                                 <TableCell><Skeleton className="h-6 w-20" /></TableCell>
                                 <TableCell><Skeleton className="h-5 w-28" /></TableCell>
                                 <TableCell><div className="flex gap-2"><Skeleton className="h-8 w-8" /><Skeleton className="h-8 w-8" /></div></TableCell>
@@ -118,6 +120,7 @@ export default function AdminQuizzesPage() {
                     <TableRow>
                         <TableHead>Titre</TableHead>
                         <TableHead>Segment</TableHead>
+                        <TableHead>Accès</TableHead>
                         <TableHead>Difficulté</TableHead>
                         <TableHead>Créé le</TableHead>
                         <TableHead className="text-right">Actions</TableHead>
@@ -128,6 +131,13 @@ export default function AdminQuizzesPage() {
                          <TableRow key={quiz.id}>
                             <TableCell className="font-medium">{quiz.title}</TableCell>
                             <TableCell><Badge variant="outline">{quiz.segment}</Badge></TableCell>
+                             <TableCell>
+                                {quiz.premiumOnly ? (
+                                    <Badge variant="default"><Star className="mr-1 h-3 w-3"/>Premium</Badge>
+                                ) : (
+                                    <Badge variant="secondary">Gratuit</Badge>
+                                )}
+                            </TableCell>
                             <TableCell>{quiz.difficulty}</TableCell>
                             <TableCell>{format(quiz.createdAt.toDate(), 'dd/MM/yyyy', { locale: fr })}</TableCell>
                             <TableCell className="text-right">

@@ -48,9 +48,8 @@ export default function QuizPage() {
         return () => unsubscribe();
     }, []);
 
-    const isPremiumContent = (quiz: Quiz) => quiz.id.includes('premium'); // Example logic
     const canAccess = (quiz: Quiz) => {
-        if (!isPremiumContent(quiz)) return true;
+        if (!quiz.premiumOnly) return true;
         return profile?.isPremium;
     };
 
@@ -89,7 +88,7 @@ export default function QuizPage() {
                         <CardHeader className="flex-grow">
                              <div className="flex justify-between items-center mb-2">
                                 <BookOpen className="h-8 w-8 text-primary" />
-                                {isPremiumContent(quiz) && <Badge variant="default"><Star className="mr-1 h-3 w-3"/>Premium</Badge>}
+                                {quiz.premiumOnly && <Badge variant="default"><Star className="mr-1 h-3 w-3"/>Premium</Badge>}
                             </div>
                             <CardTitle>{quiz.title}</CardTitle>
                             <CardDescription>Difficulté : {quiz.difficulty}</CardDescription>
