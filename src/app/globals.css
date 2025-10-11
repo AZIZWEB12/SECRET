@@ -56,5 +56,3 @@
     @apply bg-background text-foreground;
   }
 }
-
-@import 'katex/dist/katex.min.css';
