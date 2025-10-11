@@ -50,7 +50,7 @@ export function Header() {
               className="mb-8 flex items-center"
               onClick={() => setSheetOpen(false)}
             >
-              <AppLogo className="mr-2" />
+              <AppLogo className="mr-2 h-10 w-10" />
               <span className="font-bold text-primary">LE SECRET DU CONCOURS</span>
             </Link>
             <div className="flex flex-col space-y-3">
@@ -59,7 +59,7 @@ export function Header() {
           </SheetContent>
         </Sheet>
         <Link href="/" className="flex items-center space-x-2 md:hidden">
-          <AppLogo />
+          <AppLogo className="h-10 w-10"/>
         </Link>
 
 
