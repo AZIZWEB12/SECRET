@@ -83,27 +83,30 @@ export default function FormationsPage() {
                     </Card>
                 ))}
 
-                {!loading && formations.length > 0 && formations.map((formation) => (
-                    <Card key={formation.id} className="flex flex-col hover:shadow-lg transition-shadow duration-300">
-                        <CardHeader className="flex-grow">
-                             <div className="flex justify-between items-start mb-4">
-                                <div className="p-3 rounded-full bg-primary/10">
-                                   <GraduationCap className="h-8 w-8 text-primary" />
+                {!loading && formations.length > 0 && formations.map((formation) => {
+                    const hasAccess = canAccess(formation);
+                    return (
+                        <Card key={formation.id} className="flex flex-col hover:shadow-lg transition-shadow duration-300">
+                            <CardHeader className="flex-grow">
+                                <div className="flex justify-between items-start mb-4">
+                                    <div className="p-3 rounded-full bg-primary/10">
+                                    <GraduationCap className="h-8 w-8 text-primary" />
+                                    </div>
+                                    {formation.premiumOnly && <Badge variant="secondary" className="bg-orange-100 text-orange-800 border-orange-200"><Star className="mr-1 h-3 w-3"/>Premium</Badge>}
                                 </div>
-                                {formation.premiumOnly && <Badge variant="secondary" className="bg-orange-100 text-orange-800 border-orange-200"><Star className="mr-1 h-3 w-3"/>Premium</Badge>}
-                            </div>
-                            <CardTitle>{formation.title}</CardTitle>
-                            <CardDescription>{formation.description}</CardDescription>
-                        </CardHeader>
-                        <CardFooter>
-                            <Button asChild className="w-full" disabled={!canAccess(formation)}>
-                                <Link href={canAccess(formation) ? `/formations/${formation.id}` : '/premium'}>
-                                    {canAccess(formation) ? <>Commencer <ArrowRight className="ml-2 h-4 w-4"/></> : 'Devenir Premium'}
-                                </Link>
-                            </Button>
-                        </CardFooter>
-                    </Card>
-                ))}
+                                <CardTitle>{formation.title}</CardTitle>
+                                <CardDescription>{formation.description}</CardDescription>
+                            </CardHeader>
+                            <CardFooter>
+                                <Button asChild className="w-full" disabled={!hasAccess && formation.premiumOnly}>
+                                    <Link href={hasAccess ? `/formations/${formation.id}` : '/premium'}>
+                                        {hasAccess ? <>Commencer <ArrowRight className="ml-2 h-4 w-4"/></> : 'Devenir Premium'}
+                                    </Link>
+                                </Button>
+                            </CardFooter>
+                        </Card>
+                    );
+                })}
             </div>
 
             {!loading && formations.length === 0 && !error && (

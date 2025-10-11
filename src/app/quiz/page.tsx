@@ -83,25 +83,28 @@ export default function QuizPage() {
                     </Card>
                 ))}
 
-                {!loading && quizzes.length > 0 && quizzes.map((quiz) => (
-                    <Card key={quiz.id} className="flex flex-col hover:shadow-lg transition-shadow duration-300">
-                        <CardHeader className="flex-grow">
-                             <div className="flex justify-between items-center mb-2">
-                                <BookOpen className="h-8 w-8 text-primary" />
-                                {quiz.premiumOnly && <Badge variant="secondary" className="bg-orange-100 text-orange-800 border-orange-200"><Star className="mr-1 h-3 w-3"/>Premium</Badge>}
-                            </div>
-                            <CardTitle>{quiz.title}</CardTitle>
-                            <CardDescription>Difficulté : {quiz.difficulty}</CardDescription>
-                        </CardHeader>
-                        <CardFooter>
-                             <Button asChild className="w-full" disabled={!canAccess(quiz)}>
-                                <Link href={canAccess(quiz) ? `/quiz/${quiz.id}` : '/premium'}>
-                                    {canAccess(quiz) ? 'Commencer le Quiz' : 'Devenir Premium'}
-                                </Link>
-                            </Button>
-                        </CardFooter>
-                    </Card>
-                ))}
+                {!loading && quizzes.length > 0 && quizzes.map((quiz) => {
+                    const hasAccess = canAccess(quiz);
+                    return (
+                        <Card key={quiz.id} className="flex flex-col hover:shadow-lg transition-shadow duration-300">
+                            <CardHeader className="flex-grow">
+                                <div className="flex justify-between items-center mb-2">
+                                    <BookOpen className="h-8 w-8 text-primary" />
+                                    {quiz.premiumOnly && <Badge variant="secondary" className="bg-orange-100 text-orange-800 border-orange-200"><Star className="mr-1 h-3 w-3"/>Premium</Badge>}
+                                </div>
+                                <CardTitle>{quiz.title}</CardTitle>
+                                <CardDescription>Difficulté : {quiz.difficulty}</CardDescription>
+                            </CardHeader>
+                            <CardFooter>
+                                <Button asChild className="w-full" disabled={!hasAccess && quiz.premiumOnly}>
+                                    <Link href={hasAccess ? `/quiz/${quiz.id}` : '/premium'}>
+                                        {hasAccess ? 'Commencer le Quiz' : 'Devenir Premium'}
+                                    </Link>
+                                </Button>
+                            </CardFooter>
+                        </Card>
+                    );
+                })}
             </div>
 
              {!loading && quizzes.length === 0 && !error && (
