@@ -1,41 +1,29 @@
 rules_version = '2';
-
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Helper functions
-    function isOwner(userId) {
-      return request.auth != null && request.auth.uid == userId;
-    }
-    
+    // Helper function to check if a user is an admin
     function isAdmin() {
-      return request.auth != null && get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.role == 'admin';
+      return get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.role == 'admin';
     }
 
-    // Profiles
     match /profiles/{userId} {
-      allow get: if isOwner(userId) || isAdmin();
-      allow update: if isOwner(userId) || isAdmin();
-      
-      // A user can create their own profile document.
-      allow create: if isOwner(userId);
-      
-      // Allow reading the entire collection only to check for the first user during signup.
-      // This is less secure. In production, a Cloud Function is recommended.
-      allow list: if request.auth != null && request.query.limit == 1;
-    }
+      // Allow any authenticated user to create their own profile document
+      allow create: if request.auth != null;
 
-    // Quiz Attempts
-    match /quizAttempts/{attemptId} {
-      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
-      allow read: if request.auth != null && resource.data.userId == request.auth.uid;
-      // No updates or deletes allowed to preserve history
-      allow update, delete: if false;
+      // Allow users to get (read) and update their own profile document
+      allow get, update: if request.auth.uid == userId;
+
+      // Allow admins to list all users
+      allow list: if isAdmin();
     }
     
-    // Admins can read all attempts
-     match /quizAttempts/{attemptId} {
-      allow list: if isAdmin();
+    match /quizAttempts/{attemptId} {
+        // Users can create their own quiz attempts
+        allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+        
+        // Users can read their own quiz attempts, but not others'
+        allow read: if request.auth != null && get(/databases/$(database)/documents/quizAttempts/$(attemptId)).data.userId == request.auth.uid;
     }
   }
 }
