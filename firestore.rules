@@ -3,68 +3,28 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    function isAuth() {
-      return request.auth != null;
-    }
-
-    function isAdmin() {
-      return get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.role == 'admin';
-    }
-
-    function isOwner(userId) {
-      return request.auth.uid == userId;
-    }
-
+    // Allow users to read their own profile and admins to read all profiles
     match /profiles/{userId} {
-      // Un utilisateur peut créer son propre profil lors de l'inscription.
-      allow create: if request.auth.uid == userId;
-      
-      // Un utilisateur peut lire et mettre à jour son propre profil.
-      allow read, update: if isOwner(userId);
-      
-      // Les administrateurs peuvent lire la liste de tous les profils et les mettre à jour.
-      allow list, get, update: if isAdmin();
+      allow read: if request.auth != null && (request.auth.uid == userId || get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.role == 'admin');
+      // Allow users to create their own profile
+      allow create: if request.auth != null && request.auth.uid == userId;
+      // Allow users to update their own profile, admins can update any profile
+      allow update: if request.auth != null && (request.auth.uid == userId || get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.role == 'admin');
     }
 
     match /quizzes/{quizId} {
-      // Tout utilisateur authentifié peut lire les quiz.
-      allow read: if isAuth();
-
-      // Seuls les administrateurs peuvent créer, mettre à jour ou supprimer des quiz.
-      allow write: if isAdmin();
+        // Admins can do anything
+        allow read, write: if get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.role == 'admin';
+        
+        // Authenticated users can read a single quiz document
+        allow get: if request.auth != null;
     }
 
     match /quizAttempts/{attemptId} {
-        // L'utilisateur peut créer sa propre tentative de quiz
-        allow create: if isOwner(request.resource.data.userId);
-        // L'utilisateur peut lire ses propres tentatives
-        allow read, list: if isOwner(get(/databases/$(database)/documents/quizAttempts/$(attemptId)).data.userId) || isOwner(request.resource.data.userId);
-    }
-    
-    match /payments/{paymentId} {
-      // Les administrateurs peuvent lire et mettre à jour les paiements
-      allow read, write: if isAdmin();
-    }
-
-    match /pdfs/{pdfId} {
-        // Tout utilisateur authentifié peut lire les pdfs
-        allow read: if isAuth();
-        // Les admins peuvent tout faire
-        allow write: if isAdmin();
-    }
-
-    match /videos/{videoId} {
-        // Tout utilisateur authentifié peut lire les videos
-        allow read: if isAuth();
-        // Les admins peuvent tout faire
-        allow write: if isAdmin();
-    }
-
-    match /formations/{formationId} {
-        // Tout utilisateur authentifié peut lire les formations
-        allow read: if isAuth();
-        // Les admins peuvent tout faire
-        allow write: if isAdmin();
+        // Users can create their own attempts
+        allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+        // Users can only read their own attempts.
+        allow read: if request.auth != null && resource.data.userId == request.auth.uid;
     }
   }
 }
