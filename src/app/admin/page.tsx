@@ -55,15 +55,16 @@ export default function AdminDashboardPage() {
                     },
                     (err) => {
                         console.error("Error fetching pending payments:", err);
-                        setError("Erreur de lecture des paiements.");
+                        setError("Erreur de lecture des paiements. Vérifiez les permissions.");
                         setLoadingStats(false);
                     }
                 );
+                // This will be cleaned up by the main stats unsubscribe
                 return () => unsubPayments();
             }, 
             (err) => {
                 console.error("Error fetching profiles for stats:", err);
-                setError("Erreur de lecture des profils utilisateurs.");
+                setError("Erreur de lecture des profils. Vérifiez les permissions.");
                 setLoadingStats(false);
             }
         );
@@ -78,7 +79,7 @@ export default function AdminDashboardPage() {
             },
             (err) => {
                 console.error("Error fetching recent users:", err);
-                setError("Erreur de lecture des utilisateurs récents.");
+                setError("Erreur de lecture des utilisateurs récents. Vérifiez les permissions.");
                 setLoadingUsers(false);
             }
         );
@@ -198,5 +199,6 @@ export default function AdminDashboardPage() {
             </div>
         </AppLayout>
     );
+}
 
     
