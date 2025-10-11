@@ -15,6 +15,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { formatDistanceToNow } from "date-fns";
 import { fr } from "date-fns/locale";
+import { errorEmitter } from "@/firebase/error-emitter";
+import { FirestorePermissionError } from "@/firebase/errors";
 
 const adminLinks = [
     { href: "/admin/users", title: "Gérer les Utilisateurs", icon: Users },
@@ -54,18 +56,26 @@ export default function AdminDashboardPage() {
                         setError(null);
                     },
                     (err) => {
-                        console.error("Error fetching pending payments:", err);
-                        setError("Erreur de lecture des paiements. Vérifiez les permissions.");
+                        setError("Erreur de lecture des paiements.");
                         setLoadingStats(false);
+                        const permissionError = new FirestorePermissionError({
+                            path: q.toString(), // Simplified path for query
+                            operation: 'list',
+                        });
+                        errorEmitter.emit('permission-error', permissionError);
                     }
                 );
                 // This will be cleaned up by the main stats unsubscribe
                 return () => unsubPayments();
             }, 
             (err) => {
-                console.error("Error fetching profiles for stats:", err);
-                setError("Erreur de lecture des profils. Vérifiez les permissions.");
+                setError("Erreur de lecture des profils.");
                 setLoadingStats(false);
+                const permissionError = new FirestorePermissionError({
+                    path: profilesRef.path,
+                    operation: 'list',
+                });
+                errorEmitter.emit('permission-error', permissionError);
             }
         );
 
@@ -78,9 +88,13 @@ export default function AdminDashboardPage() {
                 setLoadingUsers(false);
             },
             (err) => {
-                console.error("Error fetching recent users:", err);
-                setError("Erreur de lecture des utilisateurs récents. Vérifiez les permissions.");
+                setError("Erreur de lecture des utilisateurs récents.");
                 setLoadingUsers(false);
+                 const permissionError = new FirestorePermissionError({
+                    path: 'profiles', // simplified path for query
+                    operation: 'list',
+                });
+                errorEmitter.emit('permission-error', permissionError);
             }
         );
 
@@ -98,7 +112,7 @@ export default function AdminDashboardPage() {
                  <Alert variant="destructive" className="mb-8">
                     <AlertTriangle className="h-4 w-4" />
                     <AlertTitle>Erreur de chargement</AlertTitle>
-                    <AlertDescription>{error}</AlertDescription>
+                    <AlertDescription>{error} Vérifiez les permissions de la base de données.</AlertDescription>
                 </Alert>
             )}
 
@@ -200,5 +214,3 @@ export default function AdminDashboardPage() {
         </AppLayout>
     );
 }
-
-    
