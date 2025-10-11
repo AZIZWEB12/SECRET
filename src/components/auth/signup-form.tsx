@@ -20,7 +20,7 @@ import { Loader2 } from "lucide-react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { UserSegment } from "@/lib/types"
 import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth"
-import { doc, setDoc, serverTimestamp, getDocs, collection, query } from "firebase/firestore"
+import { doc, setDoc, serverTimestamp, getDocs, collection, query, limit } from "firebase/firestore"
 import { auth, db } from "@/lib/firebase"
 import { errorEmitter } from "@/firebase/error-emitter"
 import { FirestorePermissionError } from "@/firebase/errors"
@@ -62,13 +62,19 @@ export function SignupForm() {
         const displayName = `${values.firstName} ${values.lastName}`;
         await updateProfile(user, { displayName });
         
-        // Default to 'user'. First user can be promoted to admin manually in Firebase Console.
+        // This is a temporary admin-level operation to check for the first user.
+        // This should be replaced with a secure Cloud Function in production.
+        const profilesCollectionRef = collection(db, "profiles");
+        const q = query(profilesCollectionRef, limit(1));
+        const initialUserCheck = await getDocs(q);
+        const isFirstUser = initialUserCheck.empty;
+
         const profileData = {
             displayName: displayName,
             phone: values.phone,
             segment: values.segment,
-            role: 'user',
-            isPremium: false,
+            role: 'user', // Everyone is a user by default
+            isPremium: isFirstUser, // The first user gets premium for free
             premiumUntil: null,
             createdAt: serverTimestamp(),
             email: email,
@@ -103,7 +109,9 @@ export function SignupForm() {
                 description: "Ce numéro de téléphone est déjà utilisé.",
                 variant: "destructive",
             });
-        } else if (!(error instanceof FirestorePermissionError)) {
+        } else if (error instanceof FirestorePermissionError) {
+            // Error is already emitted, do nothing to avoid duplicate toasts
+        } else {
              toast({
                 title: "Erreur d'inscription",
                 description: "Une erreur est survenue. Veuillez réessayer.",
