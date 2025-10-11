@@ -20,7 +20,7 @@ export function AppLogo({ className }: { className?: string }) {
               stroke-dashoffset: 200;
               animation: draw-s 2s ease-in-out forwards;
             }
-            .dc-path {
+            .dg-path {
               stroke: hsl(var(--primary));
               stroke-width: 8;
               fill: none;
@@ -28,14 +28,14 @@ export function AppLogo({ className }: { className?: string }) {
               stroke-linejoin: round;
               stroke-dasharray: 300;
               stroke-dashoffset: 300;
-              animation: draw-dc 2s ease-in-out 0.5s forwards;
+              animation: draw-dg 2s ease-in-out 0.5s forwards;
             }
             @keyframes draw-s {
               to {
                 stroke-dashoffset: 0;
               }
             }
-            @keyframes draw-dc {
+            @keyframes draw-dg {
               to {
                 stroke-dashoffset: 0;
               }
@@ -44,13 +44,15 @@ export function AppLogo({ className }: { className?: string }) {
         </style>
       </defs>
       <g transform="translate(5, 5) scale(0.9)">
+        {/* S */}
         <path
           className="s-path"
           d="M65,20 a15,15 0 1,1 -30,0 a15,15 0 0,1 30,0"
         />
+        {/* D and G */}
         <path
-          className="dc-path"
-          d="M65,80 a15,15 0 1,1 -30,0 a15,15 0 0,0 30,0 M35,20 V80"
+          className="dg-path"
+          d="M35,20 V80 M65,80 a15,15 0 1,1 -30,0 a15,15 0 0,0 15,15 h0 v-15"
         />
       </g>
     </svg>
