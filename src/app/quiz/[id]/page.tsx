@@ -9,7 +9,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertTriangle, ArrowLeft, ArrowRight, Loader2, Send, Clock } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, ArrowRight, Loader2, Send, Clock, ShieldAlert } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -22,7 +22,8 @@ import { BlockMath, InlineMath } from 'react-katex';
 
 export default function TakeQuizPage() {
   const { id: quizId } = useParams();
-  const { user, profile } = useAuth();
+  const { user, profile, loading: authLoading } = useAuth();
+  const router = useRouter();
 
   const [quiz, setQuiz] = useState<Quiz | null>(null);
   const [loading, setLoading] = useState(true);
@@ -105,14 +106,10 @@ export default function TakeQuizPage() {
         const docSnap = await getDoc(quizDocRef);
         if (docSnap.exists()) {
           const quizData = { id: docSnap.id, ...docSnap.data() } as Quiz;
-          if (quizData.premiumOnly && !profile?.isPremium) {
-            setError("Ce quiz est réservé aux membres Premium.");
-          } else {
-            setQuiz(quizData);
-            setUserAnswers(Array(quizData.questions.length).fill([]));
-            if (quizData.durationMinutes) {
-              setTimeLeft(quizData.durationMinutes * 60);
-            }
+          setQuiz(quizData);
+          setUserAnswers(Array(quizData.questions.length).fill([]));
+          if (quizData.durationMinutes) {
+            setTimeLeft(quizData.durationMinutes * 60);
           }
         } else {
           setError("Ce quiz n'existe pas.");
@@ -128,10 +125,8 @@ export default function TakeQuizPage() {
       }
     };
 
-    if (profile !== undefined) {
-        fetchQuiz();
-    }
-  }, [quizId, profile]);
+    fetchQuiz();
+  }, [quizId]);
 
   useEffect(() => {
     if (timeLeft === null || quizFinished) return;
@@ -175,7 +170,7 @@ export default function TakeQuizPage() {
     setUserAnswers(newAnswers);
   };
   
-  if (loading || !profile) {
+  if (loading || authLoading) {
     return <AppLayout><div className="flex justify-center items-center h-96"><Loader2 className="h-8 w-8 animate-spin" /></div></AppLayout>;
   }
 
@@ -194,6 +189,25 @@ export default function TakeQuizPage() {
 
   if (!quiz) {
     return <AppLayout><div className="text-center">Quiz introuvable.</div></AppLayout>;
+  }
+
+  // Check premium access after both quiz and profile have loaded
+  if (quiz.premiumOnly && !profile?.isPremium) {
+     return (
+      <AppLayout>
+        <Alert variant="destructive" className="max-w-md mx-auto text-center">
+          <ShieldAlert className="h-4 w-4" />
+          <AlertTitle>Accès Premium Requis</AlertTitle>
+          <AlertDescription>
+            Ce quiz est réservé aux membres Premium.
+          </AlertDescription>
+          <div className="mt-4 flex flex-col gap-2">
+            <Button asChild><Link href="/premium">Devenir Premium</Link></Button>
+            <Button asChild variant="outline"><Link href="/quiz">Retour aux quiz</Link></Button>
+          </div>
+        </Alert>
+      </AppLayout>
+    );
   }
   
   if (quizFinished) {
