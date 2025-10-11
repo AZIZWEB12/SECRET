@@ -93,12 +93,12 @@ export default function LandingPage() {
             <div className="mx-auto grid max-w-5xl items-center gap-6 py-12 lg:grid-cols-2 lg:gap-12">
                 <div className="fade-in">
                     <Image
-                        src="https://images.unsplash.com/photo-1524995767962-b1f5b5a3a3b5?q=80&w=2070&auto=format&fit=crop"
-                        alt="Bibliothèque"
+                        src="https://images.unsplash.com/photo-1517842645767-c6f90405774b?q=80&w=2070&auto=format&fit=crop"
+                        alt="Personne étudiant"
                         width={600}
                         height={400}
                         className="mx-auto aspect-video overflow-hidden rounded-xl object-cover object-center sm:w-full"
-                        data-ai-hint="library books"
+                        data-ai-hint="student studying"
                     />
                 </div>
                 <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
