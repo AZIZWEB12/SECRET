@@ -1,5 +1,5 @@
-rules_version = '2';
 
+rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
   
@@ -9,47 +9,61 @@ service cloud.firestore {
              get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.role == 'admin';
     }
 
-    // Helper function to check if the user is the owner of the document
-    function isOwner(userId) {
-      return request.auth != null && request.auth.uid == userId;
-    }
-
+    // Profiles Collection
     match /profiles/{userId} {
       // READ: 
-      // - An admin can read any profile (for the admin dashboard).
-      // - A logged-in user can read their own profile.
-      allow get: if isAdmin() || isOwner(userId);
+      // - Admins can read any profile.
+      // - Any authenticated user can read their own profile.
+      allow get: if request.auth != null && (isAdmin() || request.auth.uid == userId);
       
-      // An admin can list all users. Needed for the /admin/users page.
-      allow list: if isAdmin();
+      // LIST:
+      // - Admins can list all user profiles (for the admin dashboard).
+      allow list: if request.auth != null && isAdmin();
 
-      // CREATE: 
-      // - A new user can create their own profile document.
-      // - The check `resource.data.role == 'user'` can be bypassed for the very first user.
-      allow create: if isOwner(userId) && (
-                      // This allows the very first user to be created as an admin
-                      !exists(/databases/$(database)/documents/profiles/$(userId)) || 
-                      // Subsequent users must be created with the 'user' role
-                      request.resource.data.role == 'user'
-                    );
+      // CREATE:
+      // - Any user can create their own profile document upon signup.
+      // - The userId of the document must match the creator's UID.
+      allow create: if request.auth != null && request.auth.uid == userId;
 
       // UPDATE:
-      // - A user can update their own profile.
-      // - An admin can update any user's profile (e.g., to make them premium).
-      allow update: if isOwner(userId) || isAdmin();
-    }
-
-    match /quizAttempts/{attemptId} {
-      // CREATE: A logged-in user can create their own quiz attempts.
-      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
-
-      // READ: A user can only read their own quiz attempts.
-      allow get, list: if request.auth != null && request.auth.uid == resource.data.userId;
+      // - A user can update their own profile (displayName, segment, etc.).
+      // - An admin can update any user's profile (e.g., to grant premium status).
+      allow update: if request.auth != null && (request.auth.uid == userId || isAdmin());
+      
+      // DELETE:
+      // - Deleting profiles is disallowed to maintain data integrity.
+      allow delete: if false;
     }
     
-    // Fallback security rule - deny all other access
-    match /{document=**} {
-      allow read, write: if false;
+    // Quiz Attempts Collection
+    match /quizAttempts/{attemptId} {
+      // READ, LIST:
+      // - A user can only read their own quiz attempts.
+      allow get, list: if request.auth != null && resource.data.userId == request.auth.uid;
+      
+      // CREATE:
+      // - An authenticated user can create a quiz attempt for themselves.
+      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+
+      // UPDATE, DELETE:
+      // - Attempts are immutable once created.
+      allow update, delete: if false;
+    }
+
+    // Payments Collection
+    match /payments/{paymentId} {
+        // Admins can read and list all payments for verification
+        allow get, list: if request.auth != null && isAdmin();
+        
+        // Users can create their own payment records.
+        // Further updates (approval/rejection) are handled by admins.
+        allow create: if request.auth != null;
+
+        // Only admins can update the status of a payment
+        allow update: if request.auth != null && isAdmin();
+
+        // Payments should not be deleted.
+        allow delete: if false;
     }
   }
 }

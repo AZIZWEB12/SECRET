@@ -68,15 +68,14 @@ export function SignupForm() {
         
         let isFirstUser = false;
         try {
+            // This query might fail if rules are restrictive, but the logic inside setDoc will handle it.
             const initialUserCheck = await getDocs(q);
             isFirstUser = initialUserCheck.empty;
-        } catch (serverError) {
-             const permissionError = new FirestorePermissionError({
-                path: profilesCollectionRef.path,
-                operation: 'list',
-             });
-             errorEmitter.emit('permission-error', permissionError);
-             throw permissionError;
+        } catch (err) {
+            // We can ignore read errors here, as the primary goal is to create the user.
+            // The check is a "nice-to-have" for the first user to become admin.
+            // A more robust system might use a Cloud Function for this.
+            console.log("Could not perform initial user check, assuming not first user.");
         }
         
         const profileData = {
@@ -92,7 +91,14 @@ export function SignupForm() {
 
         const profileDocRef = doc(db, "profiles", user.uid);
         
-        await setDoc(profileDocRef, profileData)
+        setDoc(profileDocRef, profileData)
+          .then(() => {
+            toast({
+                title: "Compte créé avec succès!",
+                description: "Bienvenue sur LE SECRET DU CONCOURS. Vous allez être redirigé.",
+            });
+            router.push("/home");
+          })
           .catch(async (serverError) => {
             const permissionError = new FirestorePermissionError({
               path: profileDocRef.path,
@@ -100,14 +106,13 @@ export function SignupForm() {
               requestResourceData: profileData
             });
             errorEmitter.emit('permission-error', permissionError);
-            throw permissionError;
+            // We still show a more generic error to the user in this case.
+            toast({
+              title: "Erreur de finalisation",
+              description: "Votre compte a été créé, mais votre profil n'a pas pu être sauvegardé. Veuillez contacter le support.",
+              variant: "destructive",
+            });
           });
-        
-        toast({
-            title: "Compte créé avec succès!",
-            description: "Bienvenue sur LE SECRET DU CONCOURS. Vous allez être redirigé.",
-        });
-        router.push("/home");
 
     } catch (error: any) {
         if (error.code === 'auth/email-already-in-use') {
@@ -128,6 +133,7 @@ export function SignupForm() {
                 description: "Une erreur est survenue. Veuillez réessayer.",
                 variant: "destructive",
             });
+             console.error("Signup error:", error);
         }
     } finally {
         setLoading(false);
