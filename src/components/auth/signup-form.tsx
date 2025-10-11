@@ -63,9 +63,11 @@ export function SignupForm() {
         await updateProfile(user, { displayName });
         
         const profilesCollectionRef = collection(db, "profiles");
+        // Check if there are any users AT ALL. We need permission for this.
         const q = query(profilesCollectionRef, limit(1));
         const initialUserCheck = await getDocs(q);
-        const isFirstUser = initialUserCheck.size <= 1; // It will be 1 after this user is created
+        // If the snapshot is empty, this is the very first user.
+        const isFirstUser = initialUserCheck.empty;
 
         const profileData = {
             displayName: displayName,
@@ -80,14 +82,18 @@ export function SignupForm() {
 
         const profileDocRef = doc(db, "profiles", user.uid);
         
+        // This is the operation that often fails due to permissions.
         await setDoc(profileDocRef, profileData)
           .catch(async (serverError) => {
+            // We create a detailed error for better debugging
             const permissionError = new FirestorePermissionError({
               path: profileDocRef.path,
               operation: 'create',
               requestResourceData: profileData
             });
+            // We emit it to our global listener
             errorEmitter.emit('permission-error', permissionError);
+            // We re-throw it to be caught by the outer catch block
             throw permissionError;
           });
         
@@ -106,10 +112,10 @@ export function SignupForm() {
                 description: "Ce numéro de téléphone est déjà utilisé.",
                 variant: "destructive",
             });
-        } else if (error instanceof FirestorePermissionError) {
+        } else if (error instanceof FirestorePermissionError || error.code?.includes('permission-denied')) {
              toast({
                 title: "Erreur de Permission",
-                description: "Impossible de créer le profil. Veuillez contacter le support.",
+                description: "La création de votre profil a été bloquée. Veuillez contacter le support.",
                 variant: "destructive",
             });
         } else {

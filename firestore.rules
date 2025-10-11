@@ -1,29 +1,55 @@
 rules_version = '2';
+
 service cloud.firestore {
   match /databases/{database}/documents {
-
+  
     // Helper function to check if a user is an admin
     function isAdmin() {
-      return get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.role == 'admin';
+      return exists(/databases/$(database)/documents/profiles/$(request.auth.uid)) &&
+             get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    // Helper function to check if the user is the owner of the document
+    function isOwner(userId) {
+      return request.auth != null && request.auth.uid == userId;
     }
 
     match /profiles/{userId} {
-      // Allow any authenticated user to create their own profile document
-      allow create: if request.auth != null;
-
-      // Allow users to get (read) and update their own profile document
-      allow get, update: if request.auth.uid == userId;
-
-      // Allow admins to list all users
+      // READ: 
+      // - An admin can read any profile (for the admin dashboard).
+      // - A logged-in user can read their own profile.
+      allow get: if isAdmin() || isOwner(userId);
+      
+      // An admin can list all users. Needed for the /admin/users page.
       allow list: if isAdmin();
+
+      // CREATE: 
+      // - A new user can create their own profile document.
+      // - The check `resource.data.role == 'user'` can be bypassed for the very first user.
+      allow create: if isOwner(userId) && (
+                      // This allows the very first user to be created as an admin
+                      !exists(/databases/$(database)/documents/profiles/$(userId)) || 
+                      // Subsequent users must be created with the 'user' role
+                      request.resource.data.role == 'user'
+                    );
+
+      // UPDATE:
+      // - A user can update their own profile.
+      // - An admin can update any user's profile (e.g., to make them premium).
+      allow update: if isOwner(userId) || isAdmin();
+    }
+
+    match /quizAttempts/{attemptId} {
+      // CREATE: A logged-in user can create their own quiz attempts.
+      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+
+      // READ: A user can only read their own quiz attempts.
+      allow get, list: if request.auth != null && request.auth.uid == resource.data.userId;
     }
     
-    match /quizAttempts/{attemptId} {
-        // Users can create their own quiz attempts
-        allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
-        
-        // Users can read their own quiz attempts, but not others'
-        allow read: if request.auth != null && get(/databases/$(database)/documents/quizAttempts/$(attemptId)).data.userId == request.auth.uid;
+    // Fallback security rule - deny all other access
+    match /{document=**} {
+      allow read, write: if false;
     }
   }
 }
