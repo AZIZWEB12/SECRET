@@ -9,15 +9,19 @@ import { ThemeProvider } from '@/providers/theme-provider';
 
 const ptSans = PT_Sans({ subsets: ['latin'], weight: ['400', '700'], variable: '--font-pt-sans' });
 
+const APP_NAME = "Gagne ton concours";
+const APP_DESCRIPTION = "La plateforme la plus moderne et interactive pour réussir tes concours directs et professionnels.";
+
 export const metadata: Metadata = {
-  title: 'LE SECRET DU CONCOURS',
-  description: 'Plateforme de préparation aux concours du Burkina Faso.',
+  title: APP_NAME,
+  description: APP_DESCRIPTION,
   manifest: '/manifest.json',
-  themeColor: '#D0A0E6',
+  themeColor: '#FFFFFF',
+  applicationName: APP_NAME,
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
-    title: 'LE SECRET DU CONCOURS',
+    title: APP_NAME,
   }
 };
 
@@ -35,7 +39,9 @@ export default function RootLayout({
           href="https://fonts.googleapis.com/css2?family=PT+Sans:ital,wght@0,400;0,700;1,400;1,700&display=swap"
           rel="stylesheet"
         />
-         <link rel="icon" href="/logo.png" sizes="any" />
+        <meta name="format-detection" content="telephone=no" />
+        <meta name="mobile-web-app-capable" content="yes" />
+        <link rel="icon" href="/logo.png" sizes="any" />
       </head>
       <body className={`${ptSans.variable} font-body antialiased`}>
         <ThemeProvider
