@@ -1,0 +1,18 @@
+
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Les utilisateurs peuvent lire leur propre profil, mais ne peuvent pas lister tous les profils.
+    match /profiles/{userId} {
+      allow get: if request.auth != null && request.auth.uid == userId;
+      allow create: if request.auth != null;
+      allow update: if request.auth != null && request.auth.uid == userId;
+
+      // Les administrateurs peuvent lire la liste de tous les utilisateurs.
+      allow list: if request.auth != null && get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.role == 'admin';
+    }
+
+  }
+}
