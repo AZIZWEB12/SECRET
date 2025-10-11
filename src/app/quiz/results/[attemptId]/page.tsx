@@ -125,8 +125,14 @@ export default function QuizResultPage() {
                                     <h4 className="font-semibold flex-1">{parseInt(index) + 1}. {detail.question}</h4>
                                 </div>
                                 <div className="pl-9 mt-2 space-y-2 text-sm">
-                                    <p>Votre réponse: <Badge variant="outline">{detail.selected.join(', ') || 'Non répondu'}</Badge></p>
-                                    <p>Bonne(s) réponse(s): <Badge variant="default">{detail.correct.join(', ')}</Badge></p>
+                                    <div className="flex items-center gap-2">
+                                        <span>Votre réponse:</span>
+                                        <Badge variant="outline">{detail.selected.join(', ') || 'Non répondu'}</Badge>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <span>Bonne(s) réponse(s):</span>
+                                        <Badge variant="default">{detail.correct.join(', ')}</Badge>
+                                    </div>
                                     {detail.explanation && (
                                         <p className="text-xs text-muted-foreground italic pt-2">
                                             <strong>Explication :</strong> {detail.explanation}
