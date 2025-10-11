@@ -9,7 +9,7 @@ export default function LoginPage() {
       <div className="absolute top-4 left-4">
         <Link href="/" className="flex items-center gap-2 text-foreground">
           <AppLogo />
-          <span className="font-bold">LE SECRET DU CONCOURS</span>
+          <span className="font-bold text-primary">LE SECRET DU CONCOURS</span>
         </Link>
       </div>
       <Card className="w-full max-w-sm">

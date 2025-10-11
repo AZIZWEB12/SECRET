@@ -1,60 +1,14 @@
-import { cn } from "@/lib/utils";
+import Link from 'next/link';
+import { cn } from '@/lib/utils';
 
 export function AppLogo({ className }: { className?: string }) {
   return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 100 100"
-      className={cn("h-10 w-10", className)}
-    >
-      <defs>
-        <style>
-          {`
-            .s-path {
-              stroke: hsl(var(--primary));
-              stroke-width: 8;
-              fill: none;
-              stroke-linecap: round;
-              stroke-linejoin: round;
-              stroke-dasharray: 200;
-              stroke-dashoffset: 200;
-              animation: draw-s 2s ease-in-out forwards;
-            }
-            .dg-path {
-              stroke: hsl(var(--primary));
-              stroke-width: 8;
-              fill: none;
-              stroke-linecap: round;
-              stroke-linejoin: round;
-              stroke-dasharray: 300;
-              stroke-dashoffset: 300;
-              animation: draw-dg 2s ease-in-out 0.5s forwards;
-            }
-            @keyframes draw-s {
-              to {
-                stroke-dashoffset: 0;
-              }
-            }
-            @keyframes draw-dg {
-              to {
-                stroke-dashoffset: 0;
-              }
-            }
-          `}
-        </style>
-      </defs>
-      <g transform="translate(5, 5) scale(0.9)">
-        {/* S */}
-        <path
-          className="s-path"
-          d="M65,20 a15,15 0 1,1 -30,0 a15,15 0 0,1 30,0"
-        />
-        {/* D and G */}
-        <path
-          className="dg-path"
-          d="M35,20 V80 M65,80 a15,15 0 1,1 -30,0 a15,15 0 0,0 15,15 h0 v-15"
-        />
-      </g>
-    </svg>
+    <div className={cn("flex items-center gap-3 group", className)}>
+      <div className="relative">
+        <div className="w-10 h-10 bg-gradient-to-br from-violet-600 via-purple-500 to-primary rounded-lg flex items-center justify-center shadow-lg transition-transform duration-300 group-hover:scale-105 group-hover:rotate-[-6deg]">
+           <span className="text-white font-black text-lg tracking-tighter">GTC</span>
+        </div>
+      </div>
+    </div>
   );
 }

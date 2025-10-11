@@ -7,8 +7,8 @@ export function Footer() {
       <div className="container py-6">
         <div className="flex flex-col items-center justify-between gap-4 md:flex-row">
             <Link href="/" className="flex items-center space-x-2">
-                <AppLogo className="h-6 w-6" />
-                <span className="font-bold text-sm">
+                <AppLogo />
+                <span className="font-bold text-sm text-primary">
                  LE SECRET DU CONCOURS
                 </span>
             </Link>
