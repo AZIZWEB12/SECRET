@@ -23,6 +23,8 @@ import { FirestorePermissionError } from "@/firebase/errors";
 import { errorEmitter } from "@/firebase/error-emitter";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { QuizAttempt } from "@/lib/types";
+import { format } from "date-fns";
+import { fr } from "date-fns/locale";
 
 const profileFormSchema = z.object({
   displayName: z.string().min(2, "Le nom est trop court."),
@@ -160,11 +162,16 @@ export default function ProfilePage() {
                     <div className="text-center md:text-left">
                         <h1 className="text-3xl font-bold font-headline">{profile.displayName}</h1>
                         <p className="text-muted-foreground">{user.phoneNumber || profile.phone}</p>
-                        <div className="mt-2 flex items-center gap-2 justify-center md:justify-start">
+                        <div className="mt-2 flex flex-wrap items-center gap-2 justify-center md:justify-start">
                             <Badge variant={profile.isPremium ? "default" : "secondary"}>
                                 {profile.isPremium ? "Premium" : "Gratuit"}
                             </Badge>
                             <Badge variant="outline">{profile.segment === 'direct' ? 'Concours Direct' : 'Concours Professionnel'}</Badge>
+                            {profile.premiumActivatedAt && (
+                                <Badge variant="outline" className="bg-green-100 text-green-800">
+                                    Activé le: {format(profile.premiumActivatedAt.toDate(), 'dd/MM/yyyy', { locale: fr })}
+                                </Badge>
+                            )}
                         </div>
                     </div>
                 </div>

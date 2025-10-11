@@ -5,6 +5,9 @@ import { usePathname } from 'next/navigation';
 import { useAuth } from '@/hooks/use-auth';
 import { cn } from '@/lib/utils';
 import { Profile } from '@/lib/types';
+import { usePwaInstall } from '@/providers/pwa-install-provider';
+import { Button } from '../ui/button';
+import { ArrowDownToLine } from 'lucide-react';
 
 interface MainNavProps {
   onLinkClick?: () => void;
@@ -13,6 +16,7 @@ interface MainNavProps {
 export function MainNav({ onLinkClick }: MainNavProps) {
   const pathname = usePathname();
   const { profile, user } = useAuth();
+  const { canInstall, install } = usePwaInstall();
 
   const getNavLinks = (profile: Profile | null) => {
     const commonLinks = [
@@ -59,6 +63,12 @@ export function MainNav({ onLinkClick }: MainNavProps) {
           {label}
         </Link>
       ))}
+      {canInstall && (
+        <Button variant="ghost" onClick={() => { install(); onLinkClick?.(); }} className="gap-2 text-foreground/60 hover:text-foreground/80 justify-start p-0 h-auto">
+            <ArrowDownToLine />
+            Installer l'app
+        </Button>
+      )}
     </>
   );
 }

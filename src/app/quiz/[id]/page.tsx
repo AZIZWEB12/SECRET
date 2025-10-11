@@ -18,6 +18,7 @@ import { Progress } from '@/components/ui/progress';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 import Link from 'next/link';
+import { BlockMath, InlineMath } from 'react-katex';
 
 export default function TakeQuizPage() {
   const { id: quizId } = useParams();
@@ -199,9 +200,9 @@ export default function TakeQuizPage() {
                         Vous avez répondu correctement à {finalScore / 100 * quiz.questions.length} sur {quiz.questions.length} questions.
                     </p>
                     {finalScore >= 50 ? (
-                        <p className="mt-4 text-green-600">Félicitations ! Excellent travail.</p>
+                        <div className="mt-4 text-green-600">Félicitations ! Excellent travail.</div>
                     ): (
-                        <p className="mt-4 text-orange-600">Continuez vos efforts, vous allez y arriver !</p>
+                        <div className="mt-4 text-orange-600">Continuez vos efforts, vous allez y arriver !</div>
                     )}
                 </CardContent>
                 <CardFooter className="flex-col gap-4">
@@ -252,7 +253,9 @@ export default function TakeQuizPage() {
           <Progress value={progress} className="mt-2" />
         </CardHeader>
         <CardContent>
-          <p className="font-semibold text-lg mb-6">{currentQuestion.question}</p>
+          <div className="font-semibold text-lg mb-6">
+            <BlockMath math={currentQuestion.question}/>
+          </div>
           <RadioGroup 
             value={selectedAnswers[currentQuestionIndex]}
             onValueChange={handleAnswerSelect}
@@ -261,7 +264,7 @@ export default function TakeQuizPage() {
             {currentQuestion.options.map((option) => (
               <Label key={option.label} className="flex items-center gap-4 p-4 border rounded-md has-[:checked]:bg-primary/10 has-[:checked]:border-primary transition-colors cursor-pointer">
                 <RadioGroupItem value={option.label} id={`${currentQuestionIndex}-${option.label}`} />
-                <span>{option.text}</span>
+                <span><InlineMath math={option.text} /></span>
               </Label>
             ))}
           </RadioGroup>

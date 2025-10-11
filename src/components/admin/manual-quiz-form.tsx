@@ -16,7 +16,6 @@ import {
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { PlusCircle, Save, Trash2, Wand2, Loader2 } from 'lucide-react';
-import { QuizDifficulty, UserSegment } from '@/lib/types';
 import { Switch } from '../ui/switch';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Textarea } from '../ui/textarea';
@@ -25,13 +24,14 @@ import { generateQuizQuestions, GenerateQuizQuestionsInput } from '@/ai/flows/ge
 import { useState } from 'react';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import { useToast } from '@/hooks/use-toast';
+import { InlineMath, BlockMath } from 'react-katex';
 
 const optionSchema = z.object({
   text: z.string().min(1, "Le texte de l'option ne peut pas être vide."),
 });
 
 const questionSchema = z.object({
-  question: z.string().min(5, 'La question est trop courte.'),
+  question: z.string().min(1, 'La question ne peut pas être vide.'),
   options: z.array(optionSchema).min(4, 'Il doit y avoir 4 options.').max(4, 'Il doit y avoir 4 options.'),
   correctAnswers: z.array(z.string()).min(1, 'Veuillez sélectionner au moins une bonne réponse.'),
   explanation: z.string().optional(),
@@ -53,7 +53,7 @@ interface ManualQuizFormProps {
     onCancel: () => void;
 }
 
-const QuestionFields = ({ control, index, remove, onGenerateQuestion }: { control: Control<ManualQuizFormValues>; index: number; remove: (index: number) => void; onGenerateQuestion: (index: number, topic: string) => Promise<void> }) => {
+const QuestionFields = ({ control, index, remove, onGenerateQuestion, getValues }: { control: Control<ManualQuizFormValues>; index: number; remove: (index: number) => void; onGenerateQuestion: (index: number, topic: string) => Promise<void>, getValues: any }) => {
     const { fields } = useFieldArray({
         control,
         name: `questions.${index}.options`
@@ -74,6 +74,8 @@ const QuestionFields = ({ control, index, remove, onGenerateQuestion }: { contro
     }
     
     const optionLabels = ['A', 'B', 'C', 'D'];
+    const questionValue = getValues(`questions.${index}.question`);
+
 
     return (
         <Card className="relative bg-muted/30">
@@ -83,7 +85,7 @@ const QuestionFields = ({ control, index, remove, onGenerateQuestion }: { contro
                     <div className="flex items-center gap-2">
                          <Popover>
                             <PopoverTrigger asChild>
-                                <Button type="button" variant="outline" size="sm"><Wand2 className="mr-2 h-4 w-4" /> Générer</Button>
+                                <Button type="button" variant="outline" size="sm"><Wand2 className="mr-2 h-4 w-4" /> Générer avec IA</Button>
                             </PopoverTrigger>
                             <PopoverContent>
                                 <div className="space-y-4">
@@ -108,9 +110,13 @@ const QuestionFields = ({ control, index, remove, onGenerateQuestion }: { contro
                     render={({ field }) => (
                         <FormItem>
                             <FormLabel>Texte de la question</FormLabel>
+                             <FormDescription>
+                                Utilisez la syntaxe LaTeX pour les formules, ex: `\\(ax^2 + bx + c = 0\\)` pour une formule en ligne, et `$$...$$` pour un bloc.
+                            </FormDescription>
                             <FormControl>
                                 <Textarea {...field} />
                             </FormControl>
+                             {questionValue && <div className="p-2 border rounded-md bg-background text-sm"><BlockMath math={questionValue} /></div>}
                             <FormMessage />
                         </FormItem>
                     )}
@@ -175,6 +181,7 @@ const QuestionFields = ({ control, index, remove, onGenerateQuestion }: { contro
                                     <FormControl>
                                         <Input {...field} />
                                     </FormControl>
+                                    {field.value && <div className="p-2 border rounded-md bg-background text-sm"><InlineMath math={field.value} /></div>}
                                     <FormMessage />
                                 </FormItem>
                             )}
@@ -357,7 +364,7 @@ export function ManualQuizForm({ onSubmit, onCancel }: ManualQuizFormProps) {
 
         <div className="space-y-4">
             {fields.map((field, index) => (
-                <QuestionFields key={field.id} control={form.control} index={index} remove={remove} onGenerateQuestion={handleGenerateQuestion} />
+                <QuestionFields key={field.id} control={form.control} index={index} remove={remove} onGenerateQuestion={handleGenerateQuestion} getValues={form.getValues} />
             ))}
         </div>
 

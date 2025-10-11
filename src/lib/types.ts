@@ -11,6 +11,7 @@ export interface Profile {
   segment: UserSegment;
   role: UserRole;
   isPremium: boolean;
+  premiumActivatedAt?: Timestamp | null;
   premiumUntil?: Timestamp | null;
   createdAt: Timestamp;
 }

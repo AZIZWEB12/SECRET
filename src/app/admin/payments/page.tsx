@@ -6,7 +6,7 @@ import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/ca
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { CreditCard, Check, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { collection, onSnapshot, query, where, orderBy, doc, updateDoc } from 'firebase/firestore';
+import { collection, onSnapshot, query, where, orderBy, doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Payment } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -52,17 +52,24 @@ export default function AdminPaymentsPage() {
     
     const handlePaymentStatusUpdate = async (paymentId: string, newStatus: 'approved' | 'rejected') => {
         const paymentRef = doc(db, 'payments', paymentId);
-        const updateData = { status: newStatus };
+        const payment = payments.find(p => p.id === paymentId);
+        if (!payment) return;
+
+        const updateData: { status: 'approved' | 'rejected', approvedAt?: any } = { status: newStatus };
+        if (newStatus === 'approved') {
+            updateData.approvedAt = serverTimestamp();
+        }
+
         try {
             await updateDoc(paymentRef, updateData);
             
             // If approved, also update user's premium status
             if (newStatus === 'approved') {
-                const payment = payments.find(p => p.id === paymentId);
-                if (payment) {
-                    const userProfileRef = doc(db, 'profiles', payment.userId);
-                    await updateDoc(userProfileRef, { isPremium: true });
-                }
+                const userProfileRef = doc(db, 'profiles', payment.userId);
+                await updateDoc(userProfileRef, { 
+                    isPremium: true,
+                    premiumActivatedAt: serverTimestamp() 
+                });
             }
 
             toast({
@@ -70,11 +77,22 @@ export default function AdminPaymentsPage() {
                 description: `Le statut du paiement a été mis à jour.`
             });
         } catch (err) {
-            errorEmitter.emit('permission-error', new FirestorePermissionError({
+             const permissionError = new FirestorePermissionError({
                 path: paymentRef.path,
                 operation: 'update',
                 requestResourceData: updateData,
-            }));
+            });
+            errorEmitter.emit('permission-error', permissionError);
+
+             if (newStatus === 'approved') {
+                 const userProfileRef = doc(db, 'profiles', payment.userId);
+                 const userProfileUpdateData = { isPremium: true, premiumActivatedAt: serverTimestamp() };
+                 errorEmitter.emit('permission-error', new FirestorePermissionError({
+                    path: userProfileRef.path,
+                    operation: 'update',
+                    requestResourceData: userProfileUpdateData,
+                }));
+            }
         }
     };
 

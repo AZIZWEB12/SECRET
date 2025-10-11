@@ -19,6 +19,7 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/use-auth';
+import { BlockMath, InlineMath } from 'react-katex';
 
 export default function QuizResultPage() {
   const { attemptId } = useParams();
@@ -122,7 +123,7 @@ export default function QuizResultPage() {
                             <div key={index}>
                                 <div className="flex items-start gap-4">
                                      {getResultIcon(detail)}
-                                    <h4 className="font-semibold flex-1">{parseInt(index) + 1}. {detail.question}</h4>
+                                    <h4 className="font-semibold flex-1">{parseInt(index) + 1}. <BlockMath math={detail.question} /></h4>
                                 </div>
                                 <div className="pl-9 mt-2 space-y-2 text-sm">
                                     <div className="flex items-center gap-2">
@@ -134,9 +135,9 @@ export default function QuizResultPage() {
                                         <Badge variant="default">{detail.correct.join(', ')}</Badge>
                                     </div>
                                     {detail.explanation && (
-                                        <p className="text-xs text-muted-foreground italic pt-2">
-                                            <strong>Explication :</strong> {detail.explanation}
-                                        </p>
+                                        <div className="text-xs text-muted-foreground italic pt-2">
+                                            <strong>Explication :</strong> <InlineMath math={detail.explanation} />
+                                        </div>
                                     )}
                                 </div>
                                 <Separator className="mt-6" />

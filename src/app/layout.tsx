@@ -3,12 +3,20 @@ import { Inter } from 'next/font/google';
 import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
 import AuthProvider from '@/providers/auth-provider';
+import { PwaInstallProvider } from '@/providers/pwa-install-provider';
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
 
 export const metadata: Metadata = {
   title: 'LE SECRET DU CONCOURS',
   description: 'Plateforme de préparation aux concours du Burkina Faso.',
+  manifest: '/manifest.json',
+  themeColor: '#ffffff',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: 'LE SECRET DU CONCOURS',
+  }
 };
 
 export default function RootLayout({
@@ -27,10 +35,12 @@ export default function RootLayout({
         />
       </head>
       <body className={`${inter.variable} font-body antialiased`}>
-        <AuthProvider>
-          {children}
-          <Toaster />
-        </AuthProvider>
+        <PwaInstallProvider>
+            <AuthProvider>
+            {children}
+            <Toaster />
+            </AuthProvider>
+        </PwaInstallProvider>
       </body>
     </html>
   );
