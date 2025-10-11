@@ -1,4 +1,3 @@
-
 'use client'
 
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -17,7 +16,7 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useToast } from "@/hooks/use-toast"
 import { useState } from "react"
-import { Loader2 } from "lucide-react"
+import { Eye, EyeOff, Loader2 } from "lucide-react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { UserSegment } from "@/lib/types"
 import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth"
@@ -39,6 +38,7 @@ export function SignupForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [loading, setLoading] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
 
   const defaultSegment = searchParams.get('segment') as UserSegment | null
 
@@ -68,13 +68,9 @@ export function SignupForm() {
         
         let isFirstUser = false;
         try {
-            // This query might fail if rules are restrictive, but the logic inside setDoc will handle it.
             const initialUserCheck = await getDocs(q);
             isFirstUser = initialUserCheck.empty;
         } catch (err) {
-            // We can ignore read errors here, as the primary goal is to create the user.
-            // The check is a "nice-to-have" for the first user to become admin.
-            // A more robust system might use a Cloud Function for this.
             console.log("Could not perform initial user check, assuming not first user.");
         }
         
@@ -106,7 +102,6 @@ export function SignupForm() {
               requestResourceData: profileData
             });
             errorEmitter.emit('permission-error', permissionError);
-            // We still show a more generic error to the user in this case.
             toast({
               title: "Erreur de finalisation",
               description: "Votre compte a été créé, mais votre profil n'a pas pu être sauvegardé. Veuillez contacter le support.",
@@ -188,8 +183,23 @@ export function SignupForm() {
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Mot de passe</FormLabel>
-                <FormControl>
-                  <Input type="password" placeholder="********" {...field} />
+                 <FormControl>
+                  <div className="relative">
+                    <Input 
+                      type={showPassword ? "text" : "password"} 
+                      placeholder="********" 
+                      {...field} 
+                    />
+                    <Button 
+                      type="button" 
+                      variant="ghost" 
+                      size="icon" 
+                      className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 text-muted-foreground"
+                      onClick={() => setShowPassword(prev => !prev)}
+                    >
+                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </Button>
+                  </div>
                 </FormControl>
                 <FormMessage />
               </FormItem>

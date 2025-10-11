@@ -6,7 +6,7 @@ import { AppLogo } from '@/components/shared/app-logo';
 import { useAuth } from '@/hooks/use-auth';
 import { MainNav } from './main-nav';
 import { UserMenu } from './user-menu';
-import { Sheet, SheetContent, SheetTitle, SheetTrigger } from '../ui/sheet';
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from '../ui/sheet';
 import { Menu, Bell } from 'lucide-react';
 import { useState } from 'react';
 import { ThemeToggle } from '../shared/theme-toggle';
@@ -23,9 +23,6 @@ export function Header() {
         <div className="mr-4 hidden md:flex">
           <Link href="/" className="mr-6 flex items-center space-x-2">
             <AppLogo />
-            <span className="hidden font-bold sm:inline-block text-primary">
-              LE SECRET DU CONCOURS
-            </span>
           </Link>
           <nav className="flex items-center space-x-6 text-sm font-medium">
             <MainNav />
@@ -44,16 +41,21 @@ export function Header() {
             </Button>
           </SheetTrigger>
           <SheetContent side="left" className="pr-0">
-            <SheetTitle className="sr-only">Menu</SheetTitle>
-            <Link
-              href="/"
-              className="mb-8 flex items-center"
-              onClick={() => setSheetOpen(false)}
-            >
-              <AppLogo />
-              <span className="font-bold text-primary">LE SECRET DU CONCOURS</span>
-            </Link>
-            <div className="flex flex-col space-y-3">
+             <SheetHeader className="p-4 border-b mb-4">
+               <SheetTitle>
+                  <Link
+                    href="/"
+                    className="flex items-center"
+                    onClick={() => setSheetOpen(false)}
+                  >
+                    <AppLogo />
+                  </Link>
+               </SheetTitle>
+               <SheetDescription>
+                 Votre plateforme pour la réussite.
+               </SheetDescription>
+            </SheetHeader>
+            <div className="flex flex-col space-y-3 px-4">
               <MainNav onLinkClick={() => setSheetOpen(false)} />
             </div>
           </SheetContent>
