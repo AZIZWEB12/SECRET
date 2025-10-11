@@ -63,11 +63,11 @@ export default function LandingPage() {
               <Card>
                 <CardHeader>
                   <CardTitle>Devenez Premium</CardTitle>
-                  <CardDescription>Accès illimité à toutes les ressources pour seulement 5 000 FCFA / an.</CardDescription>
+                  <CardDescription>Accès illimité à toutes les ressources pour seulement 4 000 FCFA / an.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                    <p className="text-4xl font-bold">5 000 <span className="text-sm font-normal">FCFA/an</span></p>
-                    <p className="text-sm text-muted-foreground">Paiement facile et sécurisé par Orange Money.</p>
+                    <p className="text-4xl font-bold">4 000 <span className="text-sm font-normal">FCFA/an</span></p>
+                    <p className="text-sm text-muted-foreground">Paiement facile et sécurisé. Contactez un admin pour l'activation.</p>
                     <Button asChild className="w-full">
                         <Link href="/premium">Passer Premium</Link>
                     </Button>

@@ -4,43 +4,13 @@ import { AppLayout } from '@/components/layout/app-layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/hooks/use-auth';
-import { CheckCircle, Loader2, ShieldCheck } from 'lucide-react';
-import { useState } from 'react';
-import { doc, updateDoc, serverTimestamp } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
-import { useToast } from '@/hooks/use-toast';
+import { CheckCircle, ShieldCheck, Phone } from 'lucide-react';
 
 export default function PremiumPage() {
-  const { user, profile } = useAuth();
-  const { toast } = useToast();
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  const handlePremiumUpgrade = async () => {
-    if (!user) return;
-    setIsSubmitting(true);
-    // In a real app, this would involve a payment gateway.
-    // Here, we simulate a successful payment by directly updating the profile.
-    const profileRef = doc(db, 'profiles', user.uid);
-    try {
-      await updateDoc(profileRef, {
-        isPremium: true,
-        premiumUntil: serverTimestamp() // This should be calculated based on subscription duration
-      });
-      toast({
-        title: 'Félicitations !',
-        description: 'Vous êtes maintenant un membre Premium.',
-      });
-    } catch (error) {
-      console.error('Premium upgrade failed:', error);
-      toast({
-        title: 'Erreur',
-        description: "La mise à niveau a échoué. Veuillez réessayer.",
-        variant: 'destructive',
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+  const { profile } = useAuth();
+  
+  const adminContactNumber = "+22654808048"; 
+  const whatsappLink = `https://wa.me/${adminContactNumber}`;
 
   return (
     <AppLayout>
@@ -70,7 +40,7 @@ export default function PremiumPage() {
             <CardDescription>Accès illimité pour une année complète.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-                <p className="text-5xl font-bold text-center">5 000 <span className="text-xl font-normal text-muted-foreground">FCFA/an</span></p>
+                <p className="text-5xl font-bold text-center">4 000 <span className="text-xl font-normal text-muted-foreground">FCFA/an</span></p>
                 
                 <ul className="space-y-2 text-sm text-muted-foreground">
                     <li className="flex items-center gap-2">
@@ -87,11 +57,20 @@ export default function PremiumPage() {
                     </li>
                 </ul>
 
-                <p className="text-xs text-muted-foreground text-center pt-4">Le paiement se fait via Orange Money. En cliquant sur le bouton, vous serez redirigé pour finaliser la transaction.</p>
+                <Card className='bg-muted/50 p-4 text-center'>
+                    <CardTitle className='text-base mb-2'>Comment procéder ?</CardTitle>
+                    <CardDescription className='text-sm'>
+                        1. Effectuez votre paiement via Orange Money.
+                        <br/>
+                        2. Envoyez la preuve de paiement à un administrateur pour l'activation de votre compte.
+                    </CardDescription>
+                </Card>
                 
-                <Button onClick={handlePremiumUpgrade} disabled={isSubmitting} className="w-full" size="lg">
-                    {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    Devenir Premium maintenant
+                <Button asChild className="w-full" size="lg">
+                    <a href={whatsappLink} target="_blank" rel="noopener noreferrer">
+                        <Phone className="mr-2 h-4 w-4" />
+                        Contacter un Admin pour le paiement
+                    </a>
                 </Button>
             </CardContent>
         </Card>

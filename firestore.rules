@@ -3,34 +3,39 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Helper function to check ownership
+    // Helper functions
     function isOwner(userId) {
-      return request.auth.uid == userId;
+      return request.auth != null && request.auth.uid == userId;
+    }
+    
+    function isAdmin() {
+      return request.auth != null && get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.role == 'admin';
     }
 
-    // Profiles Collection
+    // Profiles
     match /profiles/{userId} {
-      // Any authenticated user can create their own profile document
+      allow get: if isOwner(userId) || isAdmin();
+      allow update: if isOwner(userId) || isAdmin();
+      
+      // A user can create their own profile document.
       allow create: if isOwner(userId);
-      // An authenticated user can only read their own profile
-      allow get: if isOwner(userId);
-      // An authenticated user can only update their own profile
-      allow update: if isOwner(userId);
-      // Only admins can list all profiles
-      allow list: if request.auth.token.role == 'admin';
+      
+      // Allow reading the entire collection only to check for the first user during signup.
+      // This is less secure. In production, a Cloud Function is recommended.
+      allow list: if request.auth != null && request.query.limit == 1;
     }
 
-    // QuizAttempts Collection
+    // Quiz Attempts
     match /quizAttempts/{attemptId} {
-        // Any authenticated user can create their own attempt
-        allow create: if request.auth.uid == request.resource.data.userId;
-        // Users can only read their own attempts
-        allow read: if resource.data.userId == request.auth.uid;
+      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+      allow read: if request.auth != null && resource.data.userId == request.auth.uid;
+      // No updates or deletes allowed to preserve history
+      allow update, delete: if false;
     }
-
-    // Default deny all other reads/writes
-    match /{document=**} {
-      allow read, write: if false;
+    
+    // Admins can read all attempts
+     match /quizAttempts/{attemptId} {
+      allow list: if isAdmin();
     }
   }
 }

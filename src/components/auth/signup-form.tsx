@@ -62,19 +62,17 @@ export function SignupForm() {
         const displayName = `${values.firstName} ${values.lastName}`;
         await updateProfile(user, { displayName });
         
-        // This is a temporary admin-level operation to check for the first user.
-        // This should be replaced with a secure Cloud Function in production.
         const profilesCollectionRef = collection(db, "profiles");
         const q = query(profilesCollectionRef, limit(1));
         const initialUserCheck = await getDocs(q);
-        const isFirstUser = initialUserCheck.empty;
+        const isFirstUser = initialUserCheck.size <= 1; // It will be 1 after this user is created
 
         const profileData = {
             displayName: displayName,
             phone: values.phone,
             segment: values.segment,
-            role: 'user', // Everyone is a user by default
-            isPremium: isFirstUser, // The first user gets premium for free
+            role: isFirstUser ? 'admin' : 'user',
+            isPremium: isFirstUser, 
             premiumUntil: null,
             createdAt: serverTimestamp(),
             email: email,
@@ -90,7 +88,6 @@ export function SignupForm() {
               requestResourceData: profileData
             });
             errorEmitter.emit('permission-error', permissionError);
-            // Re-throw the error to stop execution and be caught by the outer catch block
             throw permissionError;
           });
         
@@ -110,7 +107,11 @@ export function SignupForm() {
                 variant: "destructive",
             });
         } else if (error instanceof FirestorePermissionError) {
-            // Error is already emitted, do nothing to avoid duplicate toasts
+             toast({
+                title: "Erreur de Permission",
+                description: "Impossible de créer le profil. Veuillez contacter le support.",
+                variant: "destructive",
+            });
         } else {
              toast({
                 title: "Erreur d'inscription",
