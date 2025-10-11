@@ -56,17 +56,15 @@ export function MainNav({ onLinkClick }: MainNavProps) {
           href={href}
           onClick={onLinkClick}
           className={cn(
-            'transition-colors hover:text-primary-foreground/80',
-            pathname === href ? 'text-primary-foreground' : 'text-primary-foreground/60',
-            'md:text-primary-foreground md:hover:text-primary-foreground/80',
-            pathname === href ? 'md:text-primary-foreground' : 'md:text-primary-foreground/60'
+            'transition-colors hover:text-foreground/80',
+            pathname === href ? 'text-foreground' : 'text-foreground/60',
           )}
         >
           {label}
         </Link>
       ))}
       {canInstall && (
-        <Button variant="ghost" onClick={() => { install(); onLinkClick?.(); }} className="gap-2 text-primary-foreground/60 hover:text-primary-foreground/80 justify-start p-0 h-auto md:text-primary-foreground/60 md:hover:text-primary-foreground/80">
+        <Button variant="ghost" onClick={() => { install(); onLinkClick?.(); }} className="gap-2 text-foreground/60 hover:text-foreground/80 justify-start p-0 h-auto md:text-foreground/60 md:hover:text-foreground/80">
             <ArrowDownToLine />
             Installer l'app
         </Button>
