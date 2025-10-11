@@ -3,7 +3,7 @@ import { AppLogo } from '../shared/app-logo';
 
 export function Footer() {
   return (
-    <footer className="w-full border-t bg-background">
+    <footer className="w-full border-t bg-background/50 backdrop-blur-sm">
       <div className="container py-8">
         <div className="flex flex-col-reverse items-center justify-between gap-8 md:flex-row">
           <div className="flex flex-col items-center gap-2 md:items-start">
@@ -14,7 +14,7 @@ export function Footer() {
                 </span>
             </Link>
             <p className="text-center text-sm text-muted-foreground md:text-left">
-              © 2025 GTC — Développé par AzizWeb.
+              © 2024 GTC — Développé par AzizWeb.
             </p>
           </div>
           <div className="grid grid-cols-2 gap-8 text-sm md:grid-cols-3">

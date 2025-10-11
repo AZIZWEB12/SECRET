@@ -5,7 +5,7 @@ import { AppLayout } from '@/components/layout/app-layout';
 import { useAuth } from '@/hooks/use-auth';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import Link from 'next/link';
-import { ArrowRight, BookOpen, FileText, Film, GraduationCap, CheckCircle, Award, Star } from 'lucide-react';
+import { ArrowRight, BookOpen, FileText, Film, GraduationCap, Award, Star } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -24,41 +24,40 @@ const contentCategories = [
     description: 'Testez vos connaissances',
     href: '/quiz',
     icon: BookOpen,
-    color: 'text-blue-500',
+    color: 'text-primary',
   },
   {
     title: 'PDFs',
     description: 'Consultez les cours',
     href: '/pdfs',
     icon: FileText,
-    color: 'text-green-500',
+    color: 'text-primary',
   },
   {
     title: 'Vidéos',
     description: 'Apprenez en images',
     href: '/videos',
     icon: Film,
-    color: 'text-red-500',
+    color: 'text-primary',
   },
   {
     title: 'Formations',
     description: 'Suivez nos parcours',
     href: '/formations',
     icon: GraduationCap,
-    color: 'text-purple-500',
+    color: 'text-primary',
   },
 ];
 
 interface UserStats {
   quizCount: number;
-  totalCorrect: number;
   averageScore: number;
 }
 
 export default function HomePage() {
   const { user, profile, loading } = useAuth();
   const router = useRouter();
-  const [stats, setStats] = useState<UserStats>({ quizCount: 0, totalCorrect: 0, averageScore: 0 });
+  const [stats, setStats] = useState<UserStats>({ quizCount: 0, averageScore: 0 });
   const [loadingStats, setLoadingStats] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -83,9 +82,9 @@ export default function HomePage() {
                       const totalCorrect = attempts.reduce((sum, acc) => sum + acc.correctCount, 0);
                       const totalQuestions = attempts.reduce((sum, acc) => sum + acc.totalQuestions, 0);
                       const averageScore = totalQuestions > 0 ? Math.round((totalCorrect / totalQuestions) * 100) : 0;
-                      setStats({ quizCount, totalCorrect, averageScore });
+                      setStats({ quizCount, averageScore });
                   } else {
-                      setStats({ quizCount: 0, totalCorrect: 0, averageScore: 0 });
+                      setStats({ quizCount: 0, averageScore: 0 });
                   }
                   setLoadingStats(false);
                   setError(null);
@@ -153,25 +152,15 @@ export default function HomePage() {
             </Alert>
         )}
 
-        <div className="mt-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
              <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">Quiz terminés</CardTitle>
+                    <CardTitle className="text-sm font-medium">Quiz faits</CardTitle>
                     <BookOpen className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
                     {loadingStats ? <Skeleton className="h-8 w-1/4" /> : <div className="text-2xl font-bold">{stats.quizCount}</div>}
                     <p className="text-xs text-muted-foreground">Nombre de quiz complétés</p>
-                </CardContent>
-            </Card>
-            <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">Bonnes réponses</CardTitle>
-                    <CheckCircle className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                    {loadingStats ? <Skeleton className="h-8 w-1/4" /> : <div className="text-2xl font-bold">{stats.totalCorrect}</div>}
-                    <p className="text-xs text-muted-foreground">Total des réponses correctes</p>
                 </CardContent>
             </Card>
             <Card>

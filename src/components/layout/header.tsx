@@ -7,8 +7,11 @@ import { useAuth } from '@/hooks/use-auth';
 import { MainNav } from './main-nav';
 import { UserMenu } from './user-menu';
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from '../ui/sheet';
-import { Menu } from 'lucide-react';
+import { Menu, Bell } from 'lucide-react';
 import { useState } from 'react';
+import { ThemeToggle } from '../shared/theme-toggle';
+import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
+import { Card, CardHeader, CardTitle, CardDescription } from '../ui/card';
 
 export function Header() {
   const { user, loading } = useAuth();
@@ -61,9 +64,28 @@ export function Header() {
 
 
         <div className="flex flex-1 items-center justify-end space-x-2">
+          <ThemeToggle />
           {!loading &&
             (user ? (
-              <UserMenu />
+              <>
+                <Popover>
+                    <PopoverTrigger asChild>
+                         <Button variant="ghost" size="icon">
+                            <Bell className="h-5 w-5" />
+                            <span className="sr-only">Notifications</span>
+                        </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-80">
+                         <Card>
+                            <CardHeader>
+                                <CardTitle>Notifications</CardTitle>
+                                <CardDescription>Aucune nouvelle notification.</CardDescription>
+                            </CardHeader>
+                        </Card>
+                    </PopoverContent>
+                </Popover>
+                <UserMenu />
+              </>
             ) : (
               <>
                 <Button variant="ghost" asChild>

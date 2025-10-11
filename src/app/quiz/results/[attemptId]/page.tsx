@@ -103,7 +103,7 @@ export default function QuizResultPage() {
                 <CardHeader>
                     <CardTitle className="text-2xl">Correction du quiz : {attempt.quizTitle}</CardTitle>
                     <CardDescription>
-                        Résultats de votre tentative du {new Date(attempt.createdAt.toDate()).toLocaleDateString('fr-FR')}
+                        Résultats de votre tentative du {attempt.createdAt ? new Date(attempt.createdAt.toDate()).toLocaleDateString('fr-FR') : ''}
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -127,11 +127,11 @@ export default function QuizResultPage() {
                                 </div>
                                 <div className="pl-9 mt-2 space-y-2 text-sm">
                                     <div className="flex items-center gap-2">
-                                        <span>Votre réponse:</span>
+                                        <span className="text-muted-foreground">Votre réponse:</span>
                                         <Badge variant="outline">{detail.selected.join(', ') || 'Non répondu'}</Badge>
                                     </div>
                                     <div className="flex items-center gap-2">
-                                        <span>Bonne(s) réponse(s):</span>
+                                        <span className="text-muted-foreground">Bonne(s) réponse(s):</span>
                                         <Badge variant="default">{detail.correct.join(', ')}</Badge>
                                     </div>
                                     {detail.explanation && (
