@@ -3,54 +3,57 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Les utilisateurs peuvent créer leur propre profil, lire et mettre à jour leur propre profil.
-    // Les administrateurs peuvent lire et mettre à jour n'importe quel profil.
+    // Helper function to check if a user is an admin.
+    function isAdmin() {
+      return exists(/databases/$(database)/documents/profiles/$(request.auth.uid)) &&
+             get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    // Helper function to check if a user is the owner of a document.
+    function isOwner(userId) {
+      return request.auth != null && request.auth.uid == userId;
+    }
+
+    // Profiles:
+    // - Anyone can create their own profile during signup.
+    // - Users can read and update their own profile.
+    // - Admins can read any profile (needed for the users list).
+    // - Admins can update any profile (to manage premium status).
     match /profiles/{userId} {
-      allow read: if request.auth.uid == userId || get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.role == 'admin';
-      allow create: if request.auth.uid == userId;
-      allow update: if request.auth.uid == userId || get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.role == 'admin';
-      // Permet aux administrateurs de lister les utilisateurs
-      allow list: if get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.role == 'admin';
+      allow read, update: if isOwner(userId) || isAdmin();
+      allow create: if isOwner(userId);
+      allow list: if isAdmin();
     }
 
-    // Les administrateurs peuvent créer, lire, mettre à jour et supprimer des quiz.
-    // Les utilisateurs peuvent lire (get) des quiz individuels pour les passer.
-    // Les administrateurs peuvent lister tous les quiz, les utilisateurs standards ne le peuvent pas pour des raisons de performance/sécurité.
+    // Quizzes:
+    // - Admins can create, read, update, and delete any quiz.
+    // - Any authenticated user can read (get) a quiz to take it.
+    // - Any authenticated user can list quizzes.
     match /quizzes/{quizId} {
-      allow read: if true; // Tout le monde peut lire un quiz spécifique
-      allow list: if get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.role == 'admin'; // Seuls les admins peuvent lister
-      allow create, update, delete: if get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.role == 'admin';
+        allow read, list: if request.auth != null;
+        allow create, update, delete: if isAdmin();
     }
     
-    // Les utilisateurs peuvent créer leurs propres tentatives de quiz.
-    // Les utilisateurs ne peuvent lire que leurs propres tentatives.
-    // Les administrateurs peuvent lire toutes les tentatives.
+    // Quiz Attempts:
+    // - Users can create their own attempt.
+    // - Users can only read their own attempts.
     match /quizAttempts/{attemptId} {
-      allow create: if request.auth.uid == request.resource.data.userId;
-      allow read: if resource.data.userId == request.auth.uid || get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.role == 'admin';
-      allow list: if get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.role == 'admin';
+        allow create: if request.auth != null;
+        allow read: if request.auth != null && resource.data.userId == request.auth.uid;
     }
 
-    // Seuls les administrateurs peuvent gérer les paiements.
+    // PDFs, Videos, Formations (Content):
+    // - Any authenticated user can read/list content.
+    // - Only admins can create, update, or delete content.
+    match /{collection}/{docId} where collection in ['pdfs', 'videos', 'formations'] {
+        allow read, list: if request.auth != null;
+        allow create, update, delete: if isAdmin();
+    }
+    
+    // Payments:
+    // - Admins can manage all payments.
     match /payments/{paymentId} {
-       allow read, list, create, update: if get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.role == 'admin';
-    }
-    
-    // Règles pour les autres collections (PDFs, Vidéos, Formations)
-    // Les admins peuvent tout faire, les utilisateurs peuvent seulement lire.
-    match /pdfs/{pdfId} {
-        allow read, list: if request.auth != null;
-        allow create, update, delete: if get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.role == 'admin';
-    }
-    
-    match /videos/{videoId} {
-        allow read, list: if request.auth != null;
-        allow create, update, delete: if get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.role == 'admin';
-    }
-
-    match /formations/{formationId} {
-        allow read, list: if request.auth != null;
-        allow create, update, delete: if get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.role == 'admin';
+        allow read, list, create, update: if isAdmin();
     }
   }
 }
