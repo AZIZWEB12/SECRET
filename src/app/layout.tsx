@@ -13,7 +13,7 @@ export const metadata: Metadata = {
   title: 'LE SECRET DU CONCOURS',
   description: 'Plateforme de préparation aux concours du Burkina Faso.',
   manifest: '/manifest.json',
-  themeColor: '#ffffff',
+  themeColor: '#D0A0E6',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
