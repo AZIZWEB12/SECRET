@@ -91,38 +91,9 @@ export default function LandingPage() {
                 </p>
             </div>
             <div className="mx-auto grid max-w-5xl items-center gap-6 py-12 lg:grid-cols-2 lg:gap-12">
-                <div className="fade-in">
-                    <Image
-                        src="https://images.unsplash.com/photo-1517842645767-c6f90405774b?q=80&w=2070&auto=format&fit=crop"
-                        alt="Personne étudiant"
-                        width={600}
-                        height={400}
-                        className="mx-auto aspect-video overflow-hidden rounded-xl object-cover object-center sm:w-full"
-                        data-ai-hint="student studying"
-                    />
-                </div>
-                <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-                    {features.slice(0, 2).map((feature, index) => (
+                 <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                    {features.slice(0, 4).map((feature, index) => (
                         <div key={index} className="fade-in" style={{ animationDelay: `${index * 150}ms`}}>
-                            <Card className="h-full transform transition-transform duration-300 hover:-translate-y-2 hover:shadow-xl border-transparent hover:border-primary bg-card">
-                                <CardHeader>
-                                    <div className="mb-4 rounded-full bg-primary/10 p-3 w-fit">
-                                        {feature.icon}
-                                    </div>
-                                    <CardTitle>{feature.title}</CardTitle>
-                                </CardHeader>
-                                <CardContent className="text-muted-foreground text-sm">
-                                    <p>{feature.description}</p>
-                                </CardContent>
-                            </Card>
-                        </div>
-                    ))}
-                </div>
-            </div>
-             <div className="mx-auto grid max-w-5xl items-center gap-6 lg:grid-cols-2 lg:gap-12">
-                <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:order-last">
-                    {features.slice(2, 4).map((feature, index) => (
-                        <div key={index} className="fade-in" style={{ animationDelay: `${(index+2) * 150}ms`}}>
                             <Card className="h-full transform transition-transform duration-300 hover:-translate-y-2 hover:shadow-xl border-transparent hover:border-primary bg-card">
                                 <CardHeader>
                                     <div className="mb-4 rounded-full bg-primary/10 p-3 w-fit">
@@ -139,12 +110,12 @@ export default function LandingPage() {
                 </div>
                  <div className="fade-in lg:order-first">
                     <Image
-                        src="https://images.unsplash.com/photo-1543269865-cbf427effbad?q=80&w=2070&auto=format&fit=crop"
+                        src="/logo.png"
                         alt="Personnes étudiant"
                         width={600}
                         height={400}
-                        className="mx-auto aspect-video overflow-hidden rounded-xl object-cover object-center sm:w-full"
-                        data-ai-hint="students learning"
+                        className="mx-auto aspect-video overflow-hidden rounded-xl object-contain object-center sm:w-full"
+                        data-ai-hint="logo"
                     />
                 </div>
             </div>

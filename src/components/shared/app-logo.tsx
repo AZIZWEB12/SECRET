@@ -4,18 +4,55 @@ export function AppLogo({ className }: { className?: string }) {
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className={cn("h-8 w-8", className)}
+      viewBox="0 0 100 100"
+      className={cn("h-10 w-10", className)}
     >
-      <path d="M22 10v6M2 10l10-5 10 5-10 5z" />
-      <path d="M6 12v5c0 .55.45 1 1 1h8c.55 0 1-.45 1-1v-5" />
-      <path d="M6 12L2 10" />
-      <path d="M18 12l4-2" />
+      <defs>
+        <style>
+          {`
+            .s-path {
+              stroke: hsl(var(--primary));
+              stroke-width: 8;
+              fill: none;
+              stroke-linecap: round;
+              stroke-linejoin: round;
+              stroke-dasharray: 200;
+              stroke-dashoffset: 200;
+              animation: draw-s 2s ease-in-out forwards;
+            }
+            .dc-path {
+              stroke: hsl(var(--primary));
+              stroke-width: 8;
+              fill: none;
+              stroke-linecap: round;
+              stroke-linejoin: round;
+              stroke-dasharray: 300;
+              stroke-dashoffset: 300;
+              animation: draw-dc 2s ease-in-out 0.5s forwards;
+            }
+            @keyframes draw-s {
+              to {
+                stroke-dashoffset: 0;
+              }
+            }
+            @keyframes draw-dc {
+              to {
+                stroke-dashoffset: 0;
+              }
+            }
+          `}
+        </style>
+      </defs>
+      <g transform="translate(5, 5) scale(0.9)">
+        <path
+          className="s-path"
+          d="M65,20 a15,15 0 1,1 -30,0 a15,15 0 0,1 30,0"
+        />
+        <path
+          className="dc-path"
+          d="M65,80 a15,15 0 1,1 -30,0 a15,15 0 0,0 30,0 M35,20 V80"
+        />
+      </g>
     </svg>
   );
 }
