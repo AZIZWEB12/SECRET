@@ -18,7 +18,7 @@ export function Header() {
   const [isSheetOpen, setSheetOpen] = useState(false);
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <header className="sticky top-0 z-50 w-full border-b bg-primary text-primary-foreground shadow-md">
       <div className="container flex h-16 items-center">
         <div className="mr-4 hidden md:flex">
           <Link href="/" className="mr-6 flex items-center space-x-2">
@@ -37,13 +37,13 @@ export function Header() {
           <SheetTrigger asChild>
             <Button
               variant="ghost"
-              className="mr-2 px-0 text-base hover:bg-transparent focus-visible:bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 md:hidden"
+              className="mr-2 px-0 text-base hover:bg-transparent focus-visible:bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 md:hidden text-primary-foreground hover:bg-white/20"
             >
               <Menu className="h-6 w-6" />
               <span className="sr-only">Toggle Menu</span>
             </Button>
           </SheetTrigger>
-          <SheetContent side="left" className="pr-0">
+          <SheetContent side="left" className="pr-0 bg-primary text-primary-foreground">
             <SheetTitle className="sr-only">Menu</SheetTitle>
             <Link
               href="/"
@@ -70,7 +70,7 @@ export function Header() {
               <>
                 <Popover>
                     <PopoverTrigger asChild>
-                         <Button variant="ghost" size="icon">
+                         <Button variant="ghost" size="icon" className="text-primary-foreground hover:bg-white/20">
                             <Bell className="h-5 w-5" />
                             <span className="sr-only">Notifications</span>
                         </Button>
@@ -88,10 +88,10 @@ export function Header() {
               </>
             ) : (
               <>
-                <Button variant="ghost" asChild>
+                <Button variant="ghost" asChild className="text-primary-foreground hover:bg-white/20 hover:text-primary-foreground">
                   <Link href="/login">Se connecter</Link>
                 </Button>
-                <Button asChild>
+                <Button asChild variant="secondary" className="bg-white/90 text-primary hover:bg-white">
                   <Link href="/signup">S'inscrire</Link>
                 </Button>
               </>

@@ -8,7 +8,8 @@ export function AppLogo({ className }: { className?: string }) {
       alt="LE SECRET DU CONCOURS Logo"
       width={40}
       height={40}
-      className={cn("h-8 w-auto", className)}
+      className={cn("h-8 w-auto invert brightness-0", className)}
+      priority
     />
   );
 }
