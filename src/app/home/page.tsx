@@ -17,6 +17,7 @@ import { AlertTriangle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { FirestorePermissionError } from '@/firebase/errors';
 import { errorEmitter } from '@/firebase/error-emitter';
+import { Button } from '@/components/ui/button';
 
 const contentCategories = [
   {
