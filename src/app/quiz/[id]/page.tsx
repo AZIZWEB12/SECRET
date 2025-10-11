@@ -9,10 +9,10 @@ import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertTriangle, ArrowLeft, ArrowRight, Check, Loader2, Send, X, Clock } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, ArrowRight, Loader2, Send, Clock } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
 import { errorEmitter } from '@/firebase/error-emitter';
@@ -22,7 +22,6 @@ import { BlockMath, InlineMath } from 'react-katex';
 
 export default function TakeQuizPage() {
   const { id: quizId } = useParams();
-  const router = useRouter();
   const { user, profile } = useAuth();
 
   const [quiz, setQuiz] = useState<Quiz | null>(null);
@@ -30,11 +29,12 @@ export default function TakeQuizPage() {
   const [error, setError] = useState<string | null>(null);
   
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-  const [selectedAnswers, setSelectedAnswers] = useState<Record<number, string>>({}); // { questionIndex: optionLabel }
+  const [userAnswers, setUserAnswers] = useState<string[][]>([]);
   const [quizFinished, setQuizFinished] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [finalScore, setFinalScore] = useState(0);
   const [attemptId, setAttemptId] = useState<string|null>(null);
+  const [correctCount, setCorrectCount] = useState(0);
 
   const [timeLeft, setTimeLeft] = useState<number | null>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
@@ -45,27 +45,30 @@ export default function TakeQuizPage() {
     setIsSubmitting(true);
     if (timerRef.current) clearInterval(timerRef.current);
 
-    let correctCount = 0;
+    let correctAnswersCount = 0;
     const attemptDetails: QuizAttempt['details'] = {};
 
     quiz.questions.forEach((q, index) => {
-      const selectedOptLabel = selectedAnswers[index];
-      const correctOpt = q.options.find(opt => opt.is_correct);
+      const selectedOpts = userAnswers[index] || [];
+      const correctOpts = q.options.filter(opt => opt.is_correct).map(opt => opt.label);
       
-      if (selectedOptLabel && correctOpt && selectedOptLabel === correctOpt.label) {
-        correctCount++;
+      const isCorrect = correctOpts.length === selectedOpts.length && correctOpts.every(label => selectedOpts.includes(label));
+      
+      if (isCorrect) {
+        correctAnswersCount++;
       }
       
       attemptDetails[index] = {
         question: q.question,
-        selected: selectedOptLabel ? [selectedOptLabel] : [],
-        correct: q.options.filter(o => o.is_correct).map(o => o.label),
+        selected: selectedOpts,
+        correct: correctOpts,
         explanation: q.explanation,
       };
     });
 
-    const score = Math.round((correctCount / quiz.questions.length) * 100);
+    const score = Math.round((correctAnswersCount / quiz.questions.length) * 100);
     setFinalScore(score);
+    setCorrectCount(correctAnswersCount);
 
     try {
         const attemptData: Omit<QuizAttempt, 'id'> = {
@@ -73,7 +76,7 @@ export default function TakeQuizPage() {
             quizId: quiz.id,
             quizTitle: quiz.title,
             totalQuestions: quiz.questions.length,
-            correctCount,
+            correctCount: correctAnswersCount,
             score,
             details: attemptDetails,
             createdAt: serverTimestamp() as any,
@@ -89,7 +92,7 @@ export default function TakeQuizPage() {
     
     setQuizFinished(true);
     setIsSubmitting(false);
-  }, [quiz, user, selectedAnswers, isSubmitting]);
+  }, [quiz, user, userAnswers, isSubmitting]);
 
 
   useEffect(() => {
@@ -106,6 +109,7 @@ export default function TakeQuizPage() {
             setError("Ce quiz est réservé aux membres Premium.");
           } else {
             setQuiz(quizData);
+            setUserAnswers(Array(quizData.questions.length).fill([]));
             if (quizData.durationMinutes) {
               setTimeLeft(quizData.durationMinutes * 60);
             }
@@ -159,15 +163,20 @@ export default function TakeQuizPage() {
     }
   };
 
-  const handleAnswerSelect = (optionLabel: string) => {
-    setSelectedAnswers(prev => ({
-      ...prev,
-      [currentQuestionIndex]: optionLabel,
-    }));
+  const handleAnswerChange = (optionLabel: string) => {
+    const newAnswers = [...userAnswers];
+    const currentAnswers = newAnswers[currentQuestionIndex] || [];
+    
+    const updatedAnswers = currentAnswers.includes(optionLabel)
+      ? currentAnswers.filter(label => label !== optionLabel)
+      : [...currentAnswers, optionLabel];
+      
+    newAnswers[currentQuestionIndex] = updatedAnswers;
+    setUserAnswers(newAnswers);
   };
   
-  if (loading) {
-    return <AppLayout><Skeleton className="h-96 w-full" /></AppLayout>;
+  if (loading || !profile) {
+    return <AppLayout><div className="flex justify-center items-center h-96"><Loader2 className="h-8 w-8 animate-spin" /></div></AppLayout>;
   }
 
   if (error) {
@@ -177,13 +186,14 @@ export default function TakeQuizPage() {
           <AlertTriangle className="h-4 w-4" />
           <AlertTitle>Erreur</AlertTitle>
           <AlertDescription>{error}</AlertDescription>
+           <Button asChild variant="outline" className="mt-4"><Link href="/quiz">Retour aux quiz</Link></Button>
         </Alert>
       </AppLayout>
     );
   }
 
   if (!quiz) {
-    return null; // Should not happen if error is handled
+    return <AppLayout><div className="text-center">Quiz introuvable.</div></AppLayout>;
   }
   
   if (quizFinished) {
@@ -197,7 +207,7 @@ export default function TakeQuizPage() {
                 <CardContent className="text-center">
                     <p className="text-6xl font-bold">{finalScore}%</p>
                     <p className="text-muted-foreground mt-2">
-                        Vous avez répondu correctement à {finalScore / 100 * quiz.questions.length} sur {quiz.questions.length} questions.
+                        Vous avez répondu correctement à {correctCount} sur {quiz.questions.length} questions.
                     </p>
                     {finalScore >= 50 ? (
                         <div className="mt-4 text-green-600">Félicitations ! Excellent travail.</div>
@@ -256,30 +266,35 @@ export default function TakeQuizPage() {
           <div className="font-semibold text-lg mb-6">
             <BlockMath math={currentQuestion.question}/>
           </div>
-          <RadioGroup 
-            value={selectedAnswers[currentQuestionIndex]}
-            onValueChange={handleAnswerSelect}
-            className="space-y-4"
-          >
+          <div className="space-y-4">
             {currentQuestion.options.map((option) => (
-              <Label key={option.label} className="flex items-center gap-4 p-4 border rounded-md has-[:checked]:bg-primary/10 has-[:checked]:border-primary transition-colors cursor-pointer">
-                <RadioGroupItem value={option.label} id={`${currentQuestionIndex}-${option.label}`} />
-                <span><InlineMath math={option.text} /></span>
-              </Label>
+              <div key={option.label} className="flex items-center space-x-3 p-3 rounded-lg border has-[:checked]:bg-primary/10 has-[:checked]:border-primary transition-all">
+                <Checkbox 
+                  id={`${currentQuestionIndex}-${option.label}`}
+                  checked={userAnswers[currentQuestionIndex]?.includes(option.label)}
+                  onCheckedChange={() => handleAnswerChange(option.label)}
+                />
+                <Label htmlFor={`${currentQuestionIndex}-${option.label}`} className="font-medium flex-1 cursor-pointer">
+                  <InlineMath math={option.text} />
+                </Label>
+              </div>
             ))}
-          </RadioGroup>
+          </div>
+            <div className="text-xs text-muted-foreground text-center mt-4">
+              Cette question peut avoir une ou plusieurs bonnes réponses.
+            </div>
         </CardContent>
         <CardFooter className="flex justify-between">
           <Button variant="outline" onClick={handlePrevious} disabled={currentQuestionIndex === 0 || isSubmitting}>
             <ArrowLeft className="mr-2 h-4 w-4" /> Précédent
           </Button>
           {currentQuestionIndex === quiz.questions.length - 1 ? (
-            <Button onClick={handleSubmit} disabled={!selectedAnswers[currentQuestionIndex] || isSubmitting}>
+            <Button onClick={handleSubmit} disabled={(userAnswers[currentQuestionIndex] || []).length === 0 || isSubmitting}>
               {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
               Terminer
             </Button>
           ) : (
-            <Button onClick={handleNext} disabled={!selectedAnswers[currentQuestionIndex] || isSubmitting}>
+            <Button onClick={handleNext} disabled={(userAnswers[currentQuestionIndex] || []).length === 0 || isSubmitting}>
               Suivant <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
           )}

@@ -17,7 +17,6 @@ import { FirestorePermissionError } from '@/firebase/errors';
 import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/use-auth';
 import { BlockMath, InlineMath } from 'react-katex';
 
@@ -123,16 +122,20 @@ export default function QuizResultPage() {
                             <div key={index}>
                                 <div className="flex items-start gap-4">
                                      {getResultIcon(detail)}
-                                    <h4 className="font-semibold flex-1">{parseInt(index) + 1}. <BlockMath math={detail.question} /></h4>
+                                    <div className="font-semibold flex-1">{parseInt(index) + 1}. <BlockMath math={detail.question} /></div>
                                 </div>
                                 <div className="pl-9 mt-2 space-y-2 text-sm">
                                     <div className="flex items-center gap-2">
                                         <span className="text-muted-foreground">Votre réponse:</span>
-                                        <Badge variant="outline">{detail.selected.join(', ') || 'Non répondu'}</Badge>
+                                        {detail.selected.length > 0 ? (
+                                          detail.selected.map(s => <Badge key={s} variant="outline">{s}</Badge>)
+                                        ) : (
+                                          <Badge variant="outline">Non répondu</Badge>
+                                        )}
                                     </div>
                                     <div className="flex items-center gap-2">
                                         <span className="text-muted-foreground">Bonne(s) réponse(s):</span>
-                                        <Badge variant="default">{detail.correct.join(', ')}</Badge>
+                                        {detail.correct.map(c => <Badge key={c} variant="default">{c}</Badge>)}
                                     </div>
                                     {detail.explanation && (
                                         <div className="text-xs text-muted-foreground italic pt-2">
