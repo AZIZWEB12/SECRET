@@ -17,30 +17,29 @@ export interface Profile {
 }
 
 export type QuizDifficulty = 'facile' | 'moyen' | 'difficile';
-
-export interface QuizQuestionOption {
-  label: string;
-  text: string;
-  is_correct: boolean;
-}
+export type QuizAccessType = 'gratuit' | 'premium';
 
 export interface QuizQuestionData {
   question: string;
-  options: QuizQuestionOption[];
-  explanation: string;
+  options: string[]; // Changed from QuizQuestionOption[]
+  correctAnswers: string[]; // Changed from is_correct boolean on each option
+  explanation?: string;
 }
 
 export interface Quiz {
-  id: string;
+  id?: string;
   title: string;
-  segment: UserSegment;
+  description: string;
+  category: string;
   difficulty: QuizDifficulty;
-  premiumOnly: boolean;
-  durationMinutes?: number;
+  access_type: QuizAccessType;
+  duration_minutes: number;
+  isMockExam?: boolean;
+  scheduledFor?: any; // Can be Timestamp or Date
   questions: QuizQuestionData[];
-  createdBy?: string;
-  createdAt: Timestamp;
-  questionCount?: number;
+  total_questions: number;
+  createdAt?: Timestamp;
+  updatedAt?: Timestamp;
 }
 
 export interface QuizQuestion {
@@ -64,10 +63,9 @@ export interface QuizAttempt {
   id: string;
   userId: string;
   quizId: string;
-  quizTitle: string; // Add quiz title for easier display
+  quizTitle: string;
   totalQuestions: number;
   correctCount: number;
-  // Store a map of question index to the selected option labels and correct labels
   details: Record<string, { question: string; selected: string[]; correct: string[]; explanation: string; }>;
   createdAt: Timestamp;
   score: number;
@@ -118,5 +116,3 @@ export interface Payment {
   createdAt: Timestamp;
   approvedAt?: Timestamp;
 }
-
-    

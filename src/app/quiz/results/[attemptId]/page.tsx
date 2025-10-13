@@ -4,7 +4,7 @@ import { AppLayout } from '@/components/layout/app-layout';
 import { db } from '@/lib/firebase';
 import { QuizAttempt } from '@/lib/types';
 import { doc, getDoc } from 'firebase/firestore';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -18,20 +18,34 @@ import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { useAuth } from '@/hooks/use-auth';
-import { BlockMath, InlineMath } from 'react-katex';
+import MathText from '@/components/math-text';
+
+// Check if two arrays are equal regardless of order
+const arraysAreEqual = (arr1: string[], arr2: string[]) => {
+  if (arr1.length !== arr2.length) return false;
+  const sortedArr1 = [...arr1].sort();
+  const sortedArr2 = [...arr2].sort();
+  return sortedArr1.every((value, index) => value === sortedArr2[index]);
+};
 
 export default function QuizResultPage() {
   const { attemptId } = useParams();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const [attempt, setAttempt] = useState<QuizAttempt | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!attemptId || !user) return;
+    if (!attemptId || !user) {
+        if (!authLoading) {
+            setLoading(false);
+        }
+        return;
+    };
 
     const fetchAttempt = async () => {
       setLoading(true);
+      setError(null);
       const attemptDocRef = doc(db, 'quizAttempts', attemptId as string);
       try {
         const docSnap = await getDoc(attemptDocRef);
@@ -58,9 +72,9 @@ export default function QuizResultPage() {
     };
 
     fetchAttempt();
-  }, [attemptId, user]);
+  }, [attemptId, user, authLoading]);
 
-  if (loading) {
+  if (loading || authLoading) {
     return (
         <AppLayout>
             <div className="max-w-4xl mx-auto space-y-6">
@@ -87,12 +101,12 @@ export default function QuizResultPage() {
   if (!attempt) {
     return null;
   }
-
+  
   const getResultIcon = (detail: QuizAttempt['details'][string]) => {
-      const isCorrect = JSON.stringify(detail.selected.sort()) === JSON.stringify(detail.correct.sort());
-      if(isCorrect) return <CheckCircle className="h-5 w-5 text-green-500" />;
-      if(detail.selected.length === 0) return <HelpCircle className="h-5 w-5 text-yellow-500" />;
-      return <XCircle className="h-5 w-5 text-red-500" />;
+      const isCorrect = arraysAreEqual(detail.selected, detail.correct);
+      if(isCorrect) return <CheckCircle className="h-5 w-5 text-green-500 flex-shrink-0" />;
+      if(detail.selected.length === 0) return <HelpCircle className="h-5 w-5 text-yellow-500 flex-shrink-0" />;
+      return <XCircle className="h-5 w-5 text-red-500 flex-shrink-0" />;
   }
 
   return (
@@ -124,25 +138,28 @@ export default function QuizResultPage() {
                             <div key={index}>
                                 <div className="flex items-start gap-4">
                                      {getResultIcon(detail)}
-                                    <div className="font-semibold flex-1">{parseInt(index) + 1}. <BlockMath math={detail.question} /></div>
+                                    <div className="font-semibold flex-1 text-base">{parseInt(index) + 1}. <MathText text={detail.question} isBlock/></div>
                                 </div>
-                                <div className="pl-9 mt-2 space-y-2 text-sm">
-                                    <div className="flex items-center gap-2">
-                                        <span className="text-muted-foreground">Votre réponse:</span>
+                                <div className="pl-9 mt-4 space-y-3 text-sm">
+                                    <div className="flex flex-wrap items-center gap-2">
+                                        <span className="text-muted-foreground font-medium">Votre réponse:</span>
                                         {detail.selected.length > 0 ? (
-                                          detail.selected.map(s => <Badge key={s} variant="outline">{s}</Badge>)
+                                          detail.selected.map((s, i) => <Badge key={i} variant={detail.correct.includes(s) ? "default" : "destructive"}><MathText text={s}/></Badge>)
                                         ) : (
                                           <Badge variant="outline">Non répondu</Badge>
                                         )}
                                     </div>
-                                    <div className="flex items-center gap-2">
-                                        <span className="text-muted-foreground">Bonne(s) réponse(s):</span>
-                                        {detail.correct.map(c => <Badge key={c} variant="default">{c}</Badge>)}
+                                    <div className="flex flex-wrap items-center gap-2">
+                                        <span className="text-muted-foreground font-medium">Bonne(s) réponse(s):</span>
+                                        {detail.correct.map((c, i) => <Badge key={i} variant="default"><MathText text={c}/></Badge>)}
                                     </div>
                                     {detail.explanation && (
-                                        <div className="text-xs text-muted-foreground italic pt-2">
-                                            <strong>Explication :</strong> <InlineMath math={detail.explanation} />
-                                        </div>
+                                        <Alert className="mt-2">
+                                            <AlertTitle className="text-sm font-semibold">Explication</AlertTitle>
+                                            <AlertDescription className="text-xs">
+                                                <MathText text={detail.explanation} />
+                                            </AlertDescription>
+                                        </Alert>
                                     )}
                                 </div>
                                 <Separator className="mt-6" />
@@ -161,5 +178,3 @@ export default function QuizResultPage() {
     </AppLayout>
   );
 }
-
-    

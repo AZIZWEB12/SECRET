@@ -2,7 +2,7 @@
 
 import { AppLayout } from '@/components/layout/app-layout';
 import { Card, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
-import { BookOpen, Star } from 'lucide-react';
+import { BookOpen, Star, ShieldAlert, Clock } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
@@ -16,12 +16,14 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/use-auth';
 import { Badge } from '@/components/ui/badge';
+import { useRouter } from 'next/navigation';
 
 export default function QuizPage() {
     const [quizzes, setQuizzes] = useState<Quiz[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const { profile } = useAuth();
+    const { profile, loading: authLoading } = useAuth();
+    const router = useRouter();
 
     useEffect(() => {
         const quizzesCollectionRef = collection(db, 'quizzes');
@@ -48,10 +50,37 @@ export default function QuizPage() {
         return () => unsubscribe();
     }, []);
 
-    const canAccess = (quiz: Quiz) => {
-        if (!quiz.premiumOnly) return true;
-        return profile?.isPremium;
+    const handleQuizClick = (quiz: Quiz) => {
+        if (quiz.access_type === 'premium' && !profile?.isPremium) {
+            router.push('/premium');
+        } else {
+            router.push(`/quiz/${quiz.id}`);
+        }
     };
+    
+    if (loading || authLoading) {
+      return (
+        <AppLayout>
+            <div className="space-y-4">
+                <h1 className="text-3xl font-bold tracking-tight font-headline">Liste des Quiz</h1>
+                <p className="text-muted-foreground">Testez vos connaissances avec notre collection de quiz.</p>
+            </div>
+             <div className="mt-8 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                {[...Array(3)].map((_, i) => (
+                    <Card key={i}>
+                        <CardHeader>
+                            <Skeleton className="h-6 w-3/4 mb-2" />
+                            <Skeleton className="h-4 w-1/2" />
+                        </CardHeader>
+                        <CardFooter>
+                            <Skeleton className="h-10 w-full" />
+                        </CardFooter>
+                    </Card>
+                ))}
+            </div>
+        </AppLayout>
+      )
+    }
 
     return (
         <AppLayout>
@@ -71,35 +100,34 @@ export default function QuizPage() {
             )}
 
             <div className="mt-8 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                {loading && [...Array(3)].map((_, i) => (
-                    <Card key={i}>
-                        <CardHeader>
-                            <Skeleton className="h-6 w-3/4 mb-2" />
-                            <Skeleton className="h-4 w-1/2" />
-                        </CardHeader>
-                        <CardFooter>
-                            <Skeleton className="h-10 w-full" />
-                        </CardFooter>
-                    </Card>
-                ))}
+                {quizzes.length > 0 && quizzes.map((quiz) => {
+                    const isPremium = quiz.access_type === 'premium';
+                    const hasAccess = !isPremium || profile?.isPremium;
+                    const isMock = quiz.isMockExam;
 
-                {!loading && quizzes.length > 0 && quizzes.map((quiz) => {
-                    const hasAccess = canAccess(quiz);
                     return (
                         <Card key={quiz.id} className="flex flex-col hover:shadow-lg transition-shadow duration-300">
                             <CardHeader className="flex-grow">
-                                <div className="flex justify-between items-center mb-2">
-                                    <BookOpen className="h-8 w-8 text-primary" />
-                                    {quiz.premiumOnly && <Badge variant="secondary" className="bg-orange-100 text-orange-800 border-orange-200"><Star className="mr-1 h-3 w-3"/>Premium</Badge>}
+                                <div className="flex justify-between items-start mb-2">
+                                    <div className={`p-3 rounded-full ${isMock ? 'bg-red-100' : 'bg-primary/10'}`}>
+                                      <BookOpen className={`h-8 w-8 ${isMock ? 'text-red-500' : 'text-primary'}`} />
+                                    </div>
+                                    <div className="flex flex-col items-end gap-2">
+                                        {isPremium && <Badge variant="secondary" className="bg-orange-100 text-orange-800 border-orange-200"><Star className="mr-1 h-3 w-3"/>Premium</Badge>}
+                                        {isMock && <Badge variant="destructive">Concours Blanc</Badge>}
+                                    </div>
                                 </div>
                                 <CardTitle>{quiz.title}</CardTitle>
-                                <CardDescription>Difficulté : {quiz.difficulty}</CardDescription>
+                                <CardDescription>{quiz.description}</CardDescription>
+                                <div className="text-sm text-muted-foreground flex items-center gap-4 pt-2">
+                                    <span>{quiz.total_questions} questions</span>
+                                    <span className="flex items-center gap-1"><Clock className="h-4 w-4"/> {quiz.duration_minutes} min</span>
+                                    <span>{quiz.difficulty}</span>
+                                </div>
                             </CardHeader>
                             <CardFooter>
-                                <Button asChild className="w-full" disabled={!hasAccess && quiz.premiumOnly}>
-                                    <Link href={hasAccess ? `/quiz/${quiz.id}` : '/premium'}>
-                                        {hasAccess ? 'Commencer le Quiz' : 'Devenir Premium'}
-                                    </Link>
+                                <Button className="w-full" onClick={() => handleQuizClick(quiz)}>
+                                    {hasAccess ? 'Commencer le Quiz' : 'Devenir Premium'}
                                 </Button>
                             </CardFooter>
                         </Card>

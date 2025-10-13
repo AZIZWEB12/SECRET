@@ -4,12 +4,12 @@ import { AppLayout } from '@/components/layout/app-layout';
 import { db } from '@/lib/firebase';
 import { Quiz, QuizAttempt, QuizQuestionData } from '@/lib/types';
 import { useAuth } from '@/hooks/use-auth';
-import { doc, getDoc, collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, getDoc, collection, addDoc, serverTimestamp, setDoc } from 'firebase/firestore';
 import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertTriangle, ArrowLeft, ArrowRight, Loader2, Send, Clock, ShieldAlert } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, ArrowRight, Loader2, Send, Clock, ShieldAlert, Check, X, HelpCircle } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -18,7 +18,15 @@ import { Progress } from '@/components/ui/progress';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 import Link from 'next/link';
-import { BlockMath, InlineMath } from 'react-katex';
+import MathText from '@/components/math-text';
+
+// Check if two arrays are equal regardless of order
+const arraysAreEqual = (arr1: string[], arr2: string[]) => {
+  if (arr1.length !== arr2.length) return false;
+  const sortedArr1 = [...arr1].sort();
+  const sortedArr2 = [...arr2].sort();
+  return sortedArr1.every((value, index) => value === sortedArr2[index]);
+};
 
 export default function TakeQuizPage() {
   const { id: quizId } = useParams();
@@ -33,9 +41,7 @@ export default function TakeQuizPage() {
   const [userAnswers, setUserAnswers] = useState<string[][]>([]);
   const [quizFinished, setQuizFinished] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [finalScore, setFinalScore] = useState(0);
-  const [attemptId, setAttemptId] = useState<string|null>(null);
-  const [correctCount, setCorrectCount] = useState(0);
+  const [attempt, setAttempt] = useState<QuizAttempt | null>(null);
 
   const [timeLeft, setTimeLeft] = useState<number | null>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
@@ -51,9 +57,9 @@ export default function TakeQuizPage() {
 
     quiz.questions.forEach((q, index) => {
       const selectedOpts = userAnswers[index] || [];
-      const correctOpts = q.options.filter(opt => opt.is_correct).map(opt => opt.label);
+      const correctOpts = q.correctAnswers || [];
       
-      const isCorrect = correctOpts.length === selectedOpts.length && correctOpts.every(label => selectedOpts.includes(label));
+      const isCorrect = arraysAreEqual(selectedOpts, correctOpts);
       
       if (isCorrect) {
         correctAnswersCount++;
@@ -63,13 +69,11 @@ export default function TakeQuizPage() {
         question: q.question,
         selected: selectedOpts,
         correct: correctOpts,
-        explanation: q.explanation,
+        explanation: q.explanation || '',
       };
     });
 
     const score = Math.round((correctAnswersCount / quiz.questions.length) * 100);
-    setFinalScore(score);
-    setCorrectCount(correctAnswersCount);
 
     try {
         const attemptData: Omit<QuizAttempt, 'id'> = {
@@ -83,12 +87,18 @@ export default function TakeQuizPage() {
             createdAt: serverTimestamp() as any,
         }
         const docRef = await addDoc(collection(db, 'quizAttempts'), attemptData);
-        setAttemptId(docRef.id);
+        setAttempt({ id: docRef.id, ...attemptData });
     } catch(err) {
         errorEmitter.emit('permission-error', new FirestorePermissionError({
             path: 'quizAttempts',
             operation: 'create',
         }));
+         // Show a local error if saving the attempt fails, but still show results
+        toast({
+            variant: "destructive",
+            title: "Erreur de sauvegarde",
+            description: "Vos résultats n'ont pas pu être sauvegardés, mais vous pouvez voir la correction."
+        });
     }
     
     setQuizFinished(true);
@@ -97,10 +107,15 @@ export default function TakeQuizPage() {
 
 
   useEffect(() => {
-    if (!quizId) return;
+    if (!quizId) {
+        setError("ID de quiz manquant.");
+        setLoading(false);
+        return;
+    }
 
     const fetchQuiz = async () => {
       setLoading(true);
+      setError(null);
       const quizDocRef = doc(db, 'quizzes', quizId as string);
       try {
         const docSnap = await getDoc(quizDocRef);
@@ -108,8 +123,8 @@ export default function TakeQuizPage() {
           const quizData = { id: docSnap.id, ...docSnap.data() } as Quiz;
           setQuiz(quizData);
           setUserAnswers(Array(quizData.questions.length).fill([]));
-          if (quizData.durationMinutes) {
-            setTimeLeft(quizData.durationMinutes * 60);
+          if (quizData.duration_minutes) {
+            setTimeLeft(quizData.duration_minutes * 60);
           }
         } else {
           setError("Ce quiz n'existe pas.");
@@ -158,30 +173,26 @@ export default function TakeQuizPage() {
     }
   };
 
-  const handleAnswerChange = (optionLabel: string) => {
+  const handleAnswerChange = (optionValue: string) => {
     const newAnswers = [...userAnswers];
-    const currentAnswers = newAnswers[currentQuestionIndex] || [];
+    const currentAnswersForQuestion = newAnswers[currentQuestionIndex] || [];
     
-    const updatedAnswers = currentAnswers.includes(optionLabel)
-      ? currentAnswers.filter(label => label !== optionLabel)
-      : [...currentAnswers, optionLabel];
+    const updatedAnswers = currentAnswersForQuestion.includes(optionValue)
+      ? currentAnswersForQuestion.filter(val => val !== optionValue)
+      : [...currentAnswersForQuestion, optionValue];
       
     newAnswers[currentQuestionIndex] = updatedAnswers;
     setUserAnswers(newAnswers);
   };
   
-  if (authLoading) {
-    return <AppLayout><div className="flex justify-center items-center h-96"><Loader2 className="h-8 w-8 animate-spin" /></div></AppLayout>;
-  }
-
-  if (loading) {
+  if (authLoading || loading) {
     return <AppLayout><div className="flex justify-center items-center h-96"><Loader2 className="h-8 w-8 animate-spin" /></div></AppLayout>;
   }
   
   if (error) {
     return (
       <AppLayout>
-        <Alert variant="destructive">
+        <Alert variant="destructive" className="max-w-md mx-auto">
           <AlertTriangle className="h-4 w-4" />
           <AlertTitle>Erreur</AlertTitle>
           <AlertDescription>{error}</AlertDescription>
@@ -196,7 +207,7 @@ export default function TakeQuizPage() {
   }
 
   // Check premium access after both quiz and profile have loaded
-  if (quiz.premiumOnly && !profile?.isPremium) {
+  if (quiz.access_type === 'premium' && !profile?.isPremium) {
      return (
       <AppLayout>
         <Alert variant="destructive" className="max-w-md mx-auto text-center">
@@ -214,7 +225,7 @@ export default function TakeQuizPage() {
     );
   }
   
-  if (quizFinished) {
+  if (quizFinished && attempt) {
     return (
         <AppLayout>
             <Card className="w-full max-w-2xl mx-auto">
@@ -224,21 +235,21 @@ export default function TakeQuizPage() {
                 </CardHeader>
                 <CardContent className="text-center">
                     <p className="text-6xl font-bold">
-                        {correctCount}<span className="text-4xl text-muted-foreground">/{quiz.questions.length}</span>
+                        {attempt.correctCount}<span className="text-4xl text-muted-foreground">/{attempt.totalQuestions}</span>
                     </p>
                     <p className="text-muted-foreground mt-2">
                         Bonnes réponses
                     </p>
-                    {finalScore >= 50 ? (
+                    {attempt.score >= 50 ? (
                         <div className="mt-4 text-green-600">Félicitations ! Excellent travail.</div>
                     ): (
                         <div className="mt-4 text-orange-600">Continuez vos efforts, vous allez y arriver !</div>
                     )}
                 </CardContent>
                 <CardFooter className="flex-col gap-4">
-                     {attemptId && (
+                     {attempt.id && (
                         <Button asChild>
-                            <Link href={`/quiz/results/${attemptId}`}>
+                            <Link href={`/quiz/results/${attempt.id}`}>
                                 Voir la correction détaillée
                             </Link>
                         </Button>
@@ -284,18 +295,18 @@ export default function TakeQuizPage() {
         </CardHeader>
         <CardContent>
           <div className="font-semibold text-lg mb-6">
-            <BlockMath math={currentQuestion.question}/>
+            <MathText text={currentQuestion.question} isBlock />
           </div>
           <div className="space-y-4">
-            {currentQuestion.options.map((option) => (
-              <div key={option.label} className="flex items-center space-x-3 p-3 rounded-lg border has-[:checked]:bg-primary/10 has-[:checked]:border-primary transition-all">
+            {currentQuestion.options.map((option, index) => (
+              <div key={index} className="flex items-center space-x-3 p-3 rounded-lg border has-[:checked]:bg-primary/10 has-[:checked]:border-primary transition-all">
                 <Checkbox 
-                  id={`${currentQuestionIndex}-${option.label}`}
-                  checked={userAnswers[currentQuestionIndex]?.includes(option.label)}
-                  onCheckedChange={() => handleAnswerChange(option.label)}
+                  id={`${currentQuestionIndex}-${index}`}
+                  checked={userAnswers[currentQuestionIndex]?.includes(option)}
+                  onCheckedChange={() => handleAnswerChange(option)}
                 />
-                <Label htmlFor={`${currentQuestionIndex}-${option.label}`} className="font-medium flex-1 cursor-pointer">
-                  <InlineMath math={option.text} />
+                <Label htmlFor={`${currentQuestionIndex}-${index}`} className="font-medium flex-1 cursor-pointer">
+                  <MathText text={option} />
                 </Label>
               </div>
             ))}
@@ -323,5 +334,3 @@ export default function TakeQuizPage() {
     </AppLayout>
   );
 }
-
-    
