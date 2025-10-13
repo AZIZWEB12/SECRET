@@ -16,11 +16,11 @@ import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import {
   Quiz,
-  getQuizzesFromFirestore,
   deleteQuizFromFirestore,
   saveQuizToFirestore,
   updateQuizInFirestore,
   NewQuizData,
+  subscribeToQuizzes,
 } from '@/lib/firestore.service';
 // The quiz generation is performed on the server via an API route.
 // Do NOT import server-only functions directly into client components.
@@ -533,21 +533,15 @@ export default function QuizAdminPanel() {
   
   const { reset, getValues } = formMethods;
 
-  const fetchQuizzes = useCallback(async () => {
-    setIsLoading(true);
-    try {
-      const fetchedQuizzes = await getQuizzesFromFirestore();
-      setQuizzes(fetchedQuizzes);
-    } catch (error) {
-      toast({ variant: 'destructive', title: 'Erreur', description: 'Impossible de charger les quiz.' });
-    } finally {
-      setIsLoading(false);
-    }
-  }, [toast]);
-
   useEffect(() => {
-    fetchQuizzes();
-  }, [fetchQuizzes]);
+    setIsLoading(true);
+    const unsubscribe = subscribeToQuizzes((fetchedQuizzes) => {
+      setQuizzes(fetchedQuizzes);
+      setIsLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, []);
 
   const resetForm = useCallback(() => {
     reset({
@@ -626,7 +620,7 @@ export default function QuizAdminPanel() {
       toast({ title: 'Succès', description: `Le quiz a été ${editingQuiz ? 'mis à jour' : 'enregistré'}.` });
       
       handleCloseDialog();
-      fetchQuizzes();
+      // No need to fetch quizzes manually, listener will do it
 
     } catch (error) {
       console.error("Error saving quiz:", error);
@@ -642,7 +636,7 @@ export default function QuizAdminPanel() {
     try {
       await deleteQuizFromFirestore(id);
       toast({ title: 'Succès', description: 'Le quiz a été supprimé.' });
-      fetchQuizzes();
+      // No need to fetch quizzes manually, listener will do it
     } catch (error) {
       toast({ variant: 'destructive', title: 'Erreur', description: 'Impossible de supprimer le quiz.' });
     }
