@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/use-auth';
 import { Badge } from '@/components/ui/badge';
 import { useRouter } from 'next/navigation';
-import { Quiz, getQuizzesFromFirestore } from '@/lib/firestore.service';
+import { Quiz, subscribeToQuizzes } from '@/lib/firestore.service';
 
 export default function QuizPage() {
     const [quizzes, setQuizzes] = useState<Quiz[]>([]);
@@ -22,15 +22,18 @@ export default function QuizPage() {
     const router = useRouter();
 
     useEffect(() => {
-        getQuizzesFromFirestore()
-            .then(quizList => {
+        setLoading(true);
+        try {
+            const unsubscribe = subscribeToQuizzes((quizList) => {
                 setQuizzes(quizList);
                 setLoading(false);
-            })
-            .catch(err => {
-                setLoading(false);
-                setError("Erreur de chargement des quiz.");
+                setError(null);
             });
+            return () => unsubscribe();
+        } catch (err) {
+            setLoading(false);
+            setError("Erreur de chargement des quiz.");
+        }
     }, []);
 
     const handleQuizClick = (quiz: Quiz) => {
