@@ -2,17 +2,17 @@ import type { Timestamp } from 'firebase/firestore';
 
 export type UserSegment = 'direct' | 'professionnel';
 export type UserRole = 'user' | 'admin';
+export type SubscriptionType = 'gratuit' | 'premium';
 
-export interface Profile {
+export interface UserProfile {
   id: string;
-  email?: string;
+  uid: string;
+  fullName: string;
+  email: string;
   phone: string;
-  displayName?: string;
-  segment: UserSegment;
+  competitionType: UserSegment;
   role: UserRole;
-  isPremium: boolean;
-  premiumActivatedAt?: Timestamp | null;
-  premiumUntil?: Timestamp | null;
+  subscription_type: SubscriptionType;
   createdAt: Timestamp;
 }
 
@@ -21,8 +21,8 @@ export type QuizAccessType = 'gratuit' | 'premium';
 
 export interface QuizQuestionData {
   question: string;
-  options: string[]; // Changed from QuizQuestionOption[]
-  correctAnswers: string[]; // Changed from is_correct boolean on each option
+  options: string[];
+  correctAnswers: string[];
   explanation?: string;
 }
 
@@ -42,21 +42,14 @@ export interface Quiz {
   updatedAt?: Timestamp;
 }
 
-export interface QuizQuestion {
-  id: string;
-  quizId: string;
-  question: string;
-  explanation?: string;
-  createdAt: Timestamp;
-  options: QuizOption[];
-}
-
-export interface QuizOption {
-  id: string;
-  questionId: string;
-  label: string;
-  text: string;
-  isCorrect: boolean;
+export interface Document {
+    id: string;
+    title: string;
+    type: 'pdf' | 'video';
+    category: string;
+    access_type: QuizAccessType;
+    url: string;
+    createdAt: Timestamp;
 }
 
 export interface QuizAttempt {
@@ -64,55 +57,9 @@ export interface QuizAttempt {
   userId: string;
   quizId: string;
   quizTitle: string;
-  totalQuestions: number;
-  correctCount: number;
-  details: Record<string, { question: string; selected: string[]; correct: string[]; explanation: string; }>;
-  createdAt: Timestamp;
   score: number;
-}
-
-export interface PDF {
-  id: string;
-  title: string;
-  segment: UserSegment;
-  fileUrl: string;
-  premiumOnly: boolean;
-  createdBy?: string;
+  totalQuestions: number;
+  percentage: number;
   createdAt: Timestamp;
-}
-
-export interface Video {
-  id: string;
-  title: string;
-  segment: UserSegment;
-  videoUrl: string;
-  thumbnailUrl?: string;
-  premiumOnly: boolean;
-  createdBy?: string;
-  createdAt: Timestamp;
-}
-
-
-export interface Formation {
-  id: string;
-  title: string;
-  description?: string;
-  segment: UserSegment;
-  premiumOnly: boolean;
-  createdBy?: string;
-  createdAt: Timestamp;
-}
-
-export type PaymentStatus = 'pending' | 'approved' | 'rejected';
-
-export interface Payment {
-  id: string;
-  userId: string;
-  amountCFA: number;
-  provider: 'orange_money';
-  reference?: string;
-  otpCode?: string;
-  status: PaymentStatus;
-  createdAt: Timestamp;
-  approvedAt?: Timestamp;
+  details: Record<string, { question: string; selected: string[]; correct: string[]; explanation: string; }>;
 }
