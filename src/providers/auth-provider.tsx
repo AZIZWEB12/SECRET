@@ -36,7 +36,7 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (user) {
-      const profileRef = doc(db, 'users', user.uid);
+      const profileRef = doc(db, 'profiles', user.uid);
       const unsubscribeProfile = onSnapshot(profileRef, 
         (docSnap) => {
           if (docSnap.exists()) {

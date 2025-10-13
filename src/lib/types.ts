@@ -4,20 +4,26 @@ export type UserSegment = 'direct' | 'professionnel';
 export type UserRole = 'user' | 'admin';
 export type SubscriptionType = 'gratuit' | 'premium';
 
-export interface UserProfile {
+export interface Profile {
   id: string;
-  uid: string;
-  fullName: string;
+  displayName: string;
   email: string;
   phone: string;
-  competitionType: UserSegment;
+  segment: UserSegment;
   role: UserRole;
-  subscription_type: SubscriptionType;
+  isPremium: boolean;
+  premiumActivatedAt?: Timestamp;
   createdAt: Timestamp;
 }
 
 export type QuizDifficulty = 'facile' | 'moyen' | 'difficile';
 export type QuizAccessType = 'gratuit' | 'premium';
+
+export interface QuizQuestionOption {
+    label: string;
+    text: string;
+    is_correct: boolean;
+}
 
 export interface QuizQuestionData {
   question: string;
@@ -27,39 +33,68 @@ export interface QuizQuestionData {
 }
 
 export interface Quiz {
-  id?: string;
+  id: string;
   title: string;
   description: string;
-  category: string;
+  segment: UserSegment;
   difficulty: QuizDifficulty;
-  access_type: QuizAccessType;
-  duration_minutes: number;
-  isMockExam?: boolean;
-  scheduledFor?: any; // Can be Timestamp or Date
+  premiumOnly: boolean;
+  durationMinutes?: number;
   questions: QuizQuestionData[];
-  total_questions: number;
-  createdAt?: Timestamp;
-  updatedAt?: Timestamp;
+  createdAt: Timestamp;
 }
 
-export interface Document {
+export interface PDF {
     id: string;
     title: string;
-    type: 'pdf' | 'video';
-    category: string;
-    access_type: QuizAccessType;
-    url: string;
+    segment: UserSegment;
+    premiumOnly: boolean;
+    fileUrl: string;
     createdAt: Timestamp;
 }
+
+export interface Video {
+    id: string;
+    title: string;
+    segment: UserSegment;
+    premiumOnly: boolean;
+    videoUrl: string;
+    thumbnailUrl?: string;
+    createdAt: Timestamp;
+}
+
+
+export interface Formation {
+    id: string;
+    title: string;
+    description: string;
+    segment: UserSegment;
+    premiumOnly: boolean;
+    createdAt: Timestamp;
+}
+
+export interface Payment {
+    id: string;
+    userId: string;
+    status: 'pending' | 'approved' | 'rejected';
+    createdAt: Timestamp;
+    approvedAt?: Timestamp;
+}
+
 
 export interface QuizAttempt {
   id: string;
   userId: string;
   quizId: string;
   quizTitle: string;
-  score: number;
+  correctCount: number;
   totalQuestions: number;
-  percentage: number;
+  score: number;
   createdAt: Timestamp;
-  details: Record<string, { question: string; selected: string[]; correct: string[]; explanation: string; }>;
+  details: Record<string, {
+      question: string;
+      selected: string[];
+      correct: string[];
+      explanation: string;
+  }>;
 }
