@@ -289,7 +289,7 @@ function AiGeneratorDialog({ open, onOpenChange, onGenerate, isGenerating, exist
 }
 
 function QuestionsForm({ qIndex, removeQuestion }: { qIndex: number, removeQuestion: (index: number) => void }) {
-    const { control, register, watch, setValue, formState: { errors } } = useFormContext<QuizFormData>();
+    const { control, register, watch, setValue, getValues, formState: { errors } } = useFormContext<QuizFormData>();
     
     const { fields: options, append: appendOption, remove: removeOption } = useFieldArray({
         control,
@@ -672,7 +672,7 @@ export default function QuizAdminPanel() {
           explanation: q.explanation || '',
         }));
 
-        reset({
+        formMethods.reset({
           ...currentValues,
           questions: [...existingQuestions, ...newQuestions],
         });
@@ -683,7 +683,7 @@ export default function QuizAdminPanel() {
         });
       } else {
         // Remplacer toutes les questions (mode par défaut)
-        reset({
+        formMethods.reset({
           ...currentValues,
           title: quiz.title,
           description: quiz.description,
