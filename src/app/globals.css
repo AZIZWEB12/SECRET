@@ -4,48 +4,57 @@
 
 @layer base {
   :root {
-    --background: 220 13% 98%; /* Blanc cassé #F8F9FA */
-    --foreground: 210 10% 23%; /* Gris foncé #212529 */
-    --card: 220 13% 100%;
-    --card-foreground: 210 10% 23%;
-    --popover: 220 13% 100%;
-    --popover-foreground: 210 10% 23%;
-    --primary: 243 100% 70%; /* Violet royal #6C63FF */
+    --background: 240 60% 98%; /* Thème Clair: Blanc cassé */
+    --foreground: 240 10% 3.9%;
+    --card: 240 60% 98%;
+    --card-foreground: 240 10% 3.9%;
+    --popover: 240 60% 98%;
+    --popover-foreground: 240 10% 3.9%;
+    --primary: 262 80% 58%; /* Primaire: Violet/Mauve */
     --primary-foreground: 210 40% 98%;
-    --secondary: 165 100% 39%; /* Vert menthe #00C896 */
+    --secondary: 330 80% 60%; /* Renommé en 'accent' mais gardé en secondary pour shadcn */
     --secondary-foreground: 210 40% 98%;
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 243 100% 70%; /* Utilise la couleur primaire comme accent */
+    --muted: 240 5.9% 90%;
+    --muted-foreground: 240 3.8% 46.1%;
+    --accent: 330 80% 60%; /* Accent: Rose/Fuchsia */
     --accent-foreground: 210 40% 98%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 243 100% 70%;
+    --border: 240 5.9% 90%;
+    --input: 240 5.9% 90%;
+    --ring: 262 80% 58%;
     --radius: 0.5rem;
   }
  
   .dark {
-    --background: 222 47% 11%;
+    --background: 240 10% 3.9%; /* Thème Sombre: Bleu très sombre */
     --foreground: 210 40% 98%;
-    --card: 222 47% 11%;
+    --card: 240 10% 3.9%;
     --card-foreground: 210 40% 98%;
-    --popover: 222 47% 11%;
+    --popover: 240 10% 3.9%;
     --popover-foreground: 210 40% 98%;
-    --primary: 243 100% 70%;
+    --primary: 262 80% 58%;
     --primary-foreground: 210 40% 98%;
-    --secondary: 165 100% 39%;
+    --secondary: 330 80% 60%;
     --secondary-foreground: 210 40% 98%;
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 243 100% 70%;
+    --muted: 240 3.7% 15.9%;
+    --muted-foreground: 240 5% 64.9%;
+    --accent: 330 80% 60%;
     --accent-foreground: 210 40% 98%;
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 210 40% 98%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 243 100% 70%;
+    --border: 240 3.7% 15.9%;
+    --input: 240 3.7% 15.9%;
+    --ring: 262 80% 58%;
+  }
+
+  .glassmorphism-light {
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(20px);
+  }
+  .dark .glassmorphism-dark {
+    background: rgba(10, 10, 20, 0.7);
+    backdrop-filter: blur(20px);
   }
 }
  

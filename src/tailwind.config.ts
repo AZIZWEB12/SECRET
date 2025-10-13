@@ -17,7 +17,7 @@ export default {
     },
     extend: {
       fontFamily: {
-        body: ['var(--font-pt-sans)', 'sans-serif'],
+        sans: ['var(--font-pt-sans)', 'sans-serif'],
         headline: ['var(--font-pt-sans)', 'sans-serif'],
       },
       colors: {
