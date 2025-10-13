@@ -5,12 +5,11 @@ import { getStorage } from "firebase/storage";
 
 const firebaseConfig = {
   apiKey: "AIzaSyCP1TS4Y4ry6ebXcy2HdjN4QonpyxxQ5Os",
-  authDomain: "gagnetonconcours-app.firebaseapp.com",
-  projectId: "gagnetonconcours-app",
-  storageBucket: "gagnetonconcours-app.appspot.com",
-  messagingSenderId: "934255734262",
-  appId: "1:934255734262:web:7573f3e1a8b1399436c6a4",
-  measurementId: "G-L9E59C4BR9"
+  authDomain: "secrets-du-concours.firebaseapp.com",
+  projectId: "secrets-du-concours",
+  storageBucket: "secrets-du-concours.appspot.com",
+  messagingSenderId: "1096812875621",
+  appId: "1:1096812875621:web:003d998b5ab0faf88e9b8c"
 };
 
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();

@@ -1,10 +1,10 @@
 'use client';
 
-import { createContext, useState, useEffect, ReactNode } from 'react';
+import { createContext, useState, useEffect, ReactNode, useMemo } from 'react';
 import { onAuthStateChanged, User } from 'firebase/auth';
-import { doc, onSnapshot } from 'firebase/firestore';
+import { doc, onSnapshot, DocumentData } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
-import { AppUser } from '@/lib/firestore.service';
+import { AppUser, parseFirestoreDate } from '@/lib/firestore.service';
 import { FirebaseErrorListener } from '@/components/FirebaseErrorListener';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
@@ -13,6 +13,7 @@ export interface AuthContextType {
   user: User | null;
   profile: AppUser | null;
   loading: boolean;
+  initialAuthLoaded: boolean;
 }
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -20,45 +21,73 @@ export const AuthContext = createContext<AuthContextType | undefined>(undefined)
 export default function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<AppUser | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [initialAuthLoaded, setInitialAuthLoaded] = useState(false);
+  const [profileLoading, setProfileLoading] = useState(true);
 
   useEffect(() => {
     const unsubscribeAuth = onAuthStateChanged(auth, (firebaseUser) => {
-      setLoading(true);
-      if (firebaseUser) {
-        setUser(firebaseUser);
-        const profileRef = doc(db, 'users', firebaseUser.uid);
-        const unsubscribeProfile = onSnapshot(profileRef, 
-          (docSnap) => {
-            if (docSnap.exists()) {
-              setProfile({ uid: docSnap.id, ...docSnap.data() } as AppUser);
-            } else {
-              setProfile(null);
-            }
-            setLoading(false);
-          },
-          (err) => {
-            console.error("Error fetching profile:", err);
-            setProfile(null);
-            setLoading(false);
-             errorEmitter.emit('permission-error', new FirestorePermissionError({
-                path: profileRef.path,
-                operation: 'get',
-            }));
-          }
-        );
-        return () => unsubscribeProfile();
-      } else {
-        setUser(null);
+      setUser(firebaseUser);
+      setInitialAuthLoaded(true); // Auth state is now determined (user or null)
+      if (!firebaseUser) {
         setProfile(null);
-        setLoading(false);
+        setProfileLoading(false); // No profile to load
       }
     });
 
     return () => unsubscribeAuth();
   }, []);
 
-  const value = { user, profile, loading };
+  useEffect(() => {
+    if (user) {
+      setProfileLoading(true);
+      const profileRef = doc(db, 'users', user.uid);
+      const unsubscribeProfile = onSnapshot(
+        profileRef,
+        (docSnap) => {
+          if (docSnap.exists()) {
+            const data = docSnap.data() as DocumentData;
+            setProfile({
+              uid: docSnap.id,
+              ...data,
+              createdAt: parseFirestoreDate(data.createdAt),
+              lastLoginAt: data.lastLoginAt ? parseFirestoreDate(data.lastLoginAt) : undefined,
+            } as AppUser);
+          } else {
+            setProfile(null);
+          }
+          setProfileLoading(false);
+        },
+        (err) => {
+          console.error("Error fetching profile:", err);
+          errorEmitter.emit(
+            'permission-error',
+            new FirestorePermissionError({
+              path: profileRef.path,
+              operation: 'get',
+            })
+          );
+          setProfile(null);
+          setProfileLoading(false);
+        }
+      );
+      return () => unsubscribeProfile();
+    } else {
+      setProfile(null);
+      setProfileLoading(false);
+    }
+  }, [user]);
+
+  // The overall loading state is true if we are waiting for the initial auth state
+  // OR if we have a user but are still waiting for their profile to load.
+  const loading = !initialAuthLoaded || profileLoading;
+
+  const value = useMemo(() => ({
+     user,
+     profile,
+     loading,
+     initialAuthLoaded
+  }), [user, profile, loading, initialAuthLoaded]);
+
 
   return (
     <AuthContext.Provider value={value}>

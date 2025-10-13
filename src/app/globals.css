@@ -12,8 +12,8 @@
     --popover-foreground: 240 10% 3.9%;
     --primary: 262 80% 58%; /* Primaire: Violet/Mauve */
     --primary-foreground: 210 40% 98%;
-    --secondary: 330 80% 60%; /* Renommé en 'accent' mais gardé en secondary pour shadcn */
-    --secondary-foreground: 210 40% 98%;
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 240 10% 3.9%;
     --muted: 240 5.9% 90%;
     --muted-foreground: 240 3.8% 46.1%;
     --accent: 330 80% 60%; /* Accent: Rose/Fuchsia */
@@ -35,7 +35,7 @@
     --popover-foreground: 210 40% 98%;
     --primary: 262 80% 58%;
     --primary-foreground: 210 40% 98%;
-    --secondary: 330 80% 60%;
+    --secondary: 240 3.7% 15.9%;
     --secondary-foreground: 210 40% 98%;
     --muted: 240 3.7% 15.9%;
     --muted-foreground: 240 5% 64.9%;
@@ -64,5 +64,54 @@
   }
   body {
     @apply bg-background text-foreground;
+    transition: background-color 0.2s ease-in-out, color 0.2s ease-in-out;
+  }
+}
+
+@layer utilities {
+  .gradient-quiz {
+    background: linear-gradient(to right, hsl(210 100% 50%), hsl(180 100% 50%));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .gradient-mock-exam {
+    background: linear-gradient(to right, hsl(240 100% 50%), hsl(210 100% 50%));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .gradient-resource {
+    background: linear-gradient(to right, hsl(30 100% 50%), hsl(0 100% 50%));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .gradient-formation {
+     background: linear-gradient(to right, hsl(330 100% 60%), hsl(300 100% 70%));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .gradient-premium {
+     background: linear-gradient(to right, hsl(60 100% 50%), hsl(30 100% 50%));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .hover-lift {
+    @apply transition-transform duration-200 ease-in-out hover:-translate-y-0.5;
+  }
+
+  .stagger-fade-in {
+    animation: fade-in-up 0.5s ease-out forwards;
+  }
+
+}
+
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(1rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }

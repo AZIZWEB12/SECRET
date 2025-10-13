@@ -4,10 +4,10 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/hooks/use-auth';
 import { cn } from '@/lib/utils';
-import { Profile } from '@/lib/types';
+import { AppUser } from '@/lib/firestore.service';
 import { usePwaInstall } from '@/providers/pwa-install-provider';
 import { Button } from '../ui/button';
-import { ArrowDownToLine, BookOpen, FileText, Film, GraduationCap, Home, ShieldCheck, Star } from 'lucide-react';
+import { ArrowDownToLine, BookOpen, FileText, GanttChartSquare, Home, ShieldCheck, Star } from 'lucide-react';
 import { Card, CardContent } from '../ui/card';
 
 interface MainNavProps {
@@ -19,13 +19,12 @@ export function MainNav({ onLinkClick }: MainNavProps) {
   const { profile, user } = useAuth();
   const { canInstall, install } = usePwaInstall();
 
-  const getNavLinks = (profile: Profile | null) => {
+  const getNavLinks = (profile: AppUser | null) => {
     const commonLinks = [
       { href: '/home', label: 'Accueil', icon: Home },
       { href: '/quiz', label: 'Quiz', icon: BookOpen },
-      { href: '/pdfs', label: 'PDFs', icon: FileText },
-      { href: '/videos', label: 'Vidéos', icon: Film },
-      { href: '/formations', label: 'Formations', icon: GraduationCap },
+      { href: '/documents', label: 'Ressources', icon: FileText },
+      { href: '/concours', label: 'Concours', icon: GanttChartSquare },
     ];
 
     if (profile?.role === 'admin') {

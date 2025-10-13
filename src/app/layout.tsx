@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { PT_Sans } from 'next/font/google';
+import { PT_Sans, PT_Sans_Narrow } from 'next/font/google';
 import './globals.css';
 import 'katex/dist/katex.min.css';
 import { Toaster } from '@/components/ui/toaster';
@@ -12,6 +12,13 @@ const ptSans = PT_Sans({
   weight: ['400', '700'],
   variable: '--font-pt-sans' 
 });
+
+const ptSansNarrow = PT_Sans_Narrow({
+  subsets: ['latin'],
+  weight: ['400', '700'],
+  variable: '--font-pt-sans-narrow',
+});
+
 
 const APP_NAME = "Concours Master Prep";
 const APP_DESCRIPTION = "La plateforme la plus moderne et interactive pour réussir vos concours.";
@@ -39,7 +46,7 @@ export default function RootLayout({
       <head>
         <link rel="icon" href="/logo.png" sizes="any" />
       </head>
-      <body className={`${ptSans.variable} font-sans antialiased`}>
+      <body className={`${ptSans.variable} ${ptSansNarrow.variable} font-body antialiased`}>
         <ThemeProvider
             attribute="class"
             defaultTheme="system"

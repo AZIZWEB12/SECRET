@@ -2,7 +2,7 @@
 
 import { AppLayout } from '@/components/layout/app-layout';
 import { useAuth } from '@/hooks/use-auth';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import Link from 'next/link';
 import { ArrowRight, BookOpen, FileText, Film, GraduationCap, Award, Star } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -20,28 +20,28 @@ const contentCategories = [
     description: 'Testez vos connaissances',
     href: '/quiz',
     icon: BookOpen,
-    color: 'text-primary',
+    color: 'gradient-quiz',
   },
   {
-    title: 'PDFs',
-    description: 'Consultez les cours',
-    href: '/pdfs',
+    title: 'Ressources',
+    description: 'Consultez les cours et vidéos',
+    href: '/documents',
     icon: FileText,
-    color: 'text-green-500',
+    color: 'gradient-resource',
   },
   {
-    title: 'Vidéos',
-    description: 'Apprenez en images',
-    href: '/videos',
-    icon: Film,
-    color: 'text-orange-500',
-  },
-  {
-    title: 'Formations',
+    title: 'Concours',
     description: 'Suivez nos parcours',
     href: '/formations',
     icon: GraduationCap,
-    color: 'text-pink-500',
+    color: 'gradient-formation',
+  },
+  {
+    title: 'Premium',
+    description: 'Passez au niveau supérieur',
+    href: '/premium',
+    icon: Star,
+    color: 'gradient-premium',
   },
 ];
 
@@ -113,15 +113,17 @@ export default function HomePage() {
         <div className="flex justify-between items-start">
             <div>
                  <h1 className="text-3xl font-bold tracking-tight font-headline">
-                    Bonjour, <span className="text-primary">{profile?.displayName || 'cher utilisateur'}</span> !
+                    Bonjour, <span className="text-primary">{profile?.fullName?.split(' ')[0] || 'cher utilisateur'}</span> !
                 </h1>
                 <p className="text-muted-foreground">
                     Prêt à relever de nouveaux défis ? Voici vos outils pour réussir.
                 </p>
             </div>
-             <Badge variant={profile?.subscription_type === 'premium' ? "secondary" : "outline"} className="text-sm">
-                {profile?.subscription_type === 'premium' ? <><Star className="mr-2 h-4 w-4 text-yellow-500" /> Premium</> : 'Gratuit'}
-             </Badge>
+             {profile?.subscription_type === 'premium' && (
+                <Badge variant="default" className="text-sm bg-gradient-to-r from-yellow-400 to-orange-500 text-white border-none shadow-lg">
+                    <Star className="mr-2 h-4 w-4" /> Premium
+                </Badge>
+             )}
         </div>
       </div>
       
@@ -150,7 +152,7 @@ export default function HomePage() {
                     <Award className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                    {loadingStats ? <Skeleton className="h-8 w-1/4" /> : <div className="text-2xl font-bold text-secondary">{stats.averageScore}%</div>}
+                    {loadingStats ? <Skeleton className="h-8 w-1/4" /> : <div className="text-2xl font-bold text-accent">{stats.averageScore}%</div>}
                     <p className="text-xs text-muted-foreground">Précision moyenne aux quiz</p>
                 </CardContent>
             </Card>
@@ -158,28 +160,39 @@ export default function HomePage() {
 
 
       <div className="mt-12">
-        <h2 className="text-2xl font-bold tracking-tight font-headline mb-6">Explorer le contenu</h2>
+        <h2 className="text-2xl font-bold tracking-tight font-headline mb-6">Explorer</h2>
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-            {contentCategories.map((category) => (
-            <Card key={category.title} className="group transform transition-transform duration-300 hover:-translate-y-1 hover:shadow-xl overflow-hidden">
+            {contentCategories.map((category, index) => (
+            <Card key={category.title} className="group hover-lift overflow-hidden stagger-fade-in" style={{animationDelay: `${index * 100}ms`}}>
                 <CardHeader>
                   <div className={`mb-4 rounded-full p-3 bg-primary/10 w-fit`}>
                     <category.icon className={`h-7 w-7 ${category.color}`} />
                   </div>
                   <CardTitle className="text-lg">{category.title}</CardTitle>
-                  <CardDescription>{category.description}</CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <Link href={category.href}>
-                        <Button variant="link" className="p-0 text-primary">
+                    <CardDescription>{category.description}</CardDescription>
+                </CardContent>
+                <CardFooter>
+                    <Link href={category.href} className='w-full'>
+                        <Button variant="link" className="p-0 text-primary w-full justify-start">
                             Commencer <ArrowRight className="h-4 w-4 ml-2 transition-transform duration-300 group-hover:translate-x-1" />
                         </Button>
                     </Link>
-                </CardContent>
+                </CardFooter>
             </Card>
             ))}
         </div>
       </div>
+       {profile?.subscription_type === 'gratuit' && (
+        <Card className="mt-12 text-center p-8 bg-primary/5">
+          <h3 className="text-2xl font-bold font-headline gradient-premium">Passez au niveau supérieur</h3>
+          <p className="text-muted-foreground mt-2 mb-4">Débloquez l'accès illimité à toutes nos ressources et maximisez vos chances de succès.</p>
+          <Button asChild>
+            <Link href="/premium">Devenir Premium <Star className="ml-2 h-4 w-4" /></Link>
+          </Button>
+        </Card>
+      )}
     </AppLayout>
   );
 }

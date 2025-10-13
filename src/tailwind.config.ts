@@ -17,8 +17,9 @@ export default {
     },
     extend: {
       fontFamily: {
-        sans: ['var(--font-pt-sans)', 'sans-serif'],
+        body: ['var(--font-pt-sans)', 'sans-serif'],
         headline: ['var(--font-pt-sans)', 'sans-serif'],
+        narrow: ['var(--font-pt-sans-narrow)', 'sans-serif'],
       },
       colors: {
         background: 'hsl(var(--background))',
@@ -94,10 +95,21 @@ export default {
             height: '0',
           },
         },
+         'fade-in-up': {
+          from: {
+            opacity: '0',
+            transform: 'translateY(1rem)',
+          },
+          to: {
+            opacity: '1',
+            transform: 'translateY(0)',
+          },
+        },
       },
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
         'accordion-up': 'accordion-up 0.2s ease-out',
+        'fade-in-up': 'fade-in-up 0.5s ease-out forwards',
       },
     },
   },
