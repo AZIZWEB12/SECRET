@@ -59,7 +59,7 @@ export function SignupForm() {
         
         // Default to 'user' and 'gratuit'. The admin role can be assigned manually in Firestore for security.
         const profileData = {
-            fullName: values.fullName,
+            displayName: values.fullName,
             phone: values.phone,
             competitionType: values.competitionType,
             role: 'user',
@@ -82,6 +82,11 @@ export function SignupForm() {
         let description = "Une erreur inconnue est survenue.";
         if (error.code === 'auth/email-already-in-use') {
             description = "Ce numéro de téléphone est déjà utilisé.";
+            errorEmitter.emit('permission-error', new FirestorePermissionError({
+                path: `users/${auth.currentUser?.uid || 'unknown_user'}`,
+                operation: 'create',
+                requestResourceData: { phone: values.phone, competitionType: values.competitionType, message: "Tentative d'écraser un profil existant ou de créer un doublon." }
+             }));
         } else if (error.code === 'permission-denied') {
             description = "Permission refusée. La création du profil a échoué.";
              errorEmitter.emit('permission-error', new FirestorePermissionError({
