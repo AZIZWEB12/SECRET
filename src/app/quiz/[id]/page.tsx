@@ -323,3 +323,5 @@ export default function TakeQuizPage() {
     </AppLayout>
   );
 }
+
+    

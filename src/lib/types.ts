@@ -36,7 +36,7 @@ export interface Quiz {
   segment: UserSegment;
   difficulty: QuizDifficulty;
   premiumOnly: boolean;
-  durationMinutes?: number; // Add duration in minutes
+  durationMinutes?: number;
   questions: QuizQuestionData[];
   createdBy?: string;
   createdAt: Timestamp;
@@ -77,7 +77,7 @@ export interface PDF {
   id: string;
   title: string;
   segment: UserSegment;
-  storagePath: string;
+  fileUrl: string;
   premiumOnly: boolean;
   createdBy?: string;
   createdAt: Timestamp;
@@ -87,12 +87,13 @@ export interface Video {
   id: string;
   title: string;
   segment: UserSegment;
-  storagePath: string;
-  thumbnailPath?: string;
+  videoUrl: string;
+  thumbnailUrl?: string;
   premiumOnly: boolean;
   createdBy?: string;
   createdAt: Timestamp;
 }
+
 
 export interface Formation {
   id: string;
@@ -117,3 +118,5 @@ export interface Payment {
   createdAt: Timestamp;
   approvedAt?: Timestamp;
 }
+
+    

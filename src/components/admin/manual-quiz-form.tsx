@@ -42,7 +42,7 @@ const manualQuizFormSchema = z.object({
   difficulty: z.enum(['facile', 'moyen', 'difficile'], { required_error: 'Veuillez choisir une difficulté.' }),
   segment: z.enum(['direct', 'professionnel'], { required_error: 'Veuillez choisir un segment.' }),
   premiumOnly: z.boolean().default(false),
-  durationMinutes: z.number().min(0, "La durée doit être un nombre positif.").optional(),
+  durationMinutes: z.coerce.number().min(0, "La durée doit être un nombre positif.").optional(),
   questions: z.array(questionSchema).min(1, 'Le quiz doit contenir au moins une question.'),
 });
 
@@ -330,8 +330,6 @@ export function ManualQuizForm({ onSubmit, onCancel }: ManualQuizFormProps) {
                     type="number" 
                     placeholder="Ex: 30" 
                     {...field} 
-                    onChange={e => field.onChange(e.target.value === '' ? undefined : parseInt(e.target.value, 10))}
-                    value={field.value ?? ''}
                 />
               </FormControl>
                <FormDescription>
@@ -383,3 +381,5 @@ export function ManualQuizForm({ onSubmit, onCancel }: ManualQuizFormProps) {
     </Form>
   );
 }
+
+    

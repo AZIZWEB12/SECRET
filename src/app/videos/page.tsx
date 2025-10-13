@@ -18,12 +18,14 @@ import { useAuth } from '@/hooks/use-auth';
 import { Badge } from '@/components/ui/badge';
 import Image from 'next/image';
 import { CardDescription } from '@/components/ui/card';
+import { useRouter } from 'next/navigation';
 
 export default function VideosPage() {
     const [videos, setVideos] = useState<Video[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const { profile } = useAuth();
+    const router = useRouter();
 
     useEffect(() => {
         const videosCollectionRef = collection(db, 'videos');
@@ -54,6 +56,14 @@ export default function VideosPage() {
         if (!video.premiumOnly) return true;
         return profile?.isPremium;
     };
+    
+    const handleAccess = (video: Video) => {
+        if (canAccess(video)) {
+             window.open(video.videoUrl, '_blank');
+        } else {
+            router.push('/premium');
+        }
+    }
 
     return (
         <AppLayout>
@@ -85,24 +95,25 @@ export default function VideosPage() {
                     </Card>
                 ))}
 
-                {!loading && videos.length > 0 && videos.map((video) => (
-                    <Card key={video.id} className="flex flex-col overflow-hidden hover:shadow-lg transition-shadow duration-300">
-                        <div className="relative aspect-video">
-                            <Image src={video.thumbnailPath || `https://picsum.photos/seed/${video.id}/400/225`} alt={video.title} fill className="object-cover" />
-                             {video.premiumOnly && <Badge variant="secondary" className="absolute top-2 right-2 bg-orange-100 text-orange-800 border-orange-200"><Star className="mr-1 h-3 w-3"/>Premium</Badge>}
-                        </div>
-                        <CardHeader className="flex-grow">
-                            <CardTitle className="leading-tight">{video.title}</CardTitle>
-                        </CardHeader>
-                        <CardFooter>
-                             <Button asChild className="w-full" disabled={!canAccess(video)}>
-                                <Link href={canAccess(video) ? `/videos/${video.id}` : '/premium'}>
-                                    {canAccess(video) ? <><PlayCircle className="mr-2 h-4 w-4"/>Regarder</> : 'Devenir Premium'}
-                                </Link>
-                            </Button>
-                        </CardFooter>
-                    </Card>
-                ))}
+                {!loading && videos.length > 0 && videos.map((video) => {
+                    const hasAccess = canAccess(video);
+                    return (
+                        <Card key={video.id} className="flex flex-col overflow-hidden hover:shadow-lg transition-shadow duration-300">
+                            <div className="relative aspect-video">
+                                <Image src={video.thumbnailUrl || `https://picsum.photos/seed/${video.id}/400/225`} alt={video.title} fill className="object-cover" />
+                                {video.premiumOnly && <Badge variant="secondary" className="absolute top-2 right-2 bg-orange-100 text-orange-800 border-orange-200"><Star className="mr-1 h-3 w-3"/>Premium</Badge>}
+                            </div>
+                            <CardHeader className="flex-grow">
+                                <CardTitle className="leading-tight">{video.title}</CardTitle>
+                            </CardHeader>
+                            <CardFooter>
+                                <Button className="w-full" onClick={() => handleAccess(video)}>
+                                    {hasAccess ? <><PlayCircle className="mr-2 h-4 w-4"/>Regarder</> : 'Devenir Premium'}
+                                </Button>
+                            </CardFooter>
+                        </Card>
+                    );
+                })}
             </div>
 
             {!loading && videos.length === 0 && !error && (
@@ -123,3 +134,5 @@ export default function VideosPage() {
         </AppLayout>
     );
 }
+
+    

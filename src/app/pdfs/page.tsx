@@ -16,12 +16,14 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/use-auth';
 import { Badge } from '@/components/ui/badge';
+import { useRouter } from 'next/navigation';
 
 export default function PdfsPage() {
     const [pdfs, setPdfs] = useState<PDF[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const { profile } = useAuth();
+    const router = useRouter();
 
     useEffect(() => {
         const pdfsCollectionRef = collection(db, 'pdfs');
@@ -52,6 +54,15 @@ export default function PdfsPage() {
         if (!pdf.premiumOnly) return true;
         return profile?.isPremium;
     };
+    
+    const handleAccess = (pdf: PDF) => {
+        if (canAccess(pdf)) {
+             window.open(pdf.fileUrl, '_blank');
+        } else {
+            router.push('/premium');
+        }
+    }
+
 
     return (
         <AppLayout>
@@ -83,25 +94,26 @@ export default function PdfsPage() {
                     </Card>
                 ))}
 
-                {!loading && pdfs.length > 0 && pdfs.map((pdf) => (
-                    <Card key={pdf.id} className="flex flex-col hover:shadow-lg transition-shadow duration-300">
-                        <CardHeader className="flex-grow">
-                             <div className="flex justify-between items-center mb-2">
-                                <FileText className="h-8 w-8 text-primary" />
-                                {pdf.premiumOnly && <Badge variant="secondary" className="bg-orange-100 text-orange-800 border-orange-200"><Star className="mr-1 h-3 w-3"/>Premium</Badge>}
-                            </div>
-                            <CardTitle className="leading-tight">{pdf.title}</CardTitle>
-                            <CardDescription>Segment: {pdf.segment}</CardDescription>
-                        </CardHeader>
-                        <CardFooter>
-                             <Button asChild className="w-full" disabled={!canAccess(pdf)}>
-                                <Link href={canAccess(pdf) ? pdf.storagePath : '/premium'}>
-                                    {canAccess(pdf) ? <><Download className="mr-2 h-4 w-4"/>Télécharger</> : 'Devenir Premium'}
-                                </Link>
-                            </Button>
-                        </CardFooter>
-                    </Card>
-                ))}
+                {!loading && pdfs.length > 0 && pdfs.map((pdf) => {
+                    const hasAccess = canAccess(pdf);
+                    return (
+                        <Card key={pdf.id} className="flex flex-col hover:shadow-lg transition-shadow duration-300">
+                            <CardHeader className="flex-grow">
+                                <div className="flex justify-between items-center mb-2">
+                                    <FileText className="h-8 w-8 text-primary" />
+                                    {pdf.premiumOnly && <Badge variant="secondary" className="bg-orange-100 text-orange-800 border-orange-200"><Star className="mr-1 h-3 w-3"/>Premium</Badge>}
+                                </div>
+                                <CardTitle className="leading-tight">{pdf.title}</CardTitle>
+                                <CardDescription>Segment: {pdf.segment}</CardDescription>
+                            </CardHeader>
+                            <CardFooter>
+                                <Button className="w-full" onClick={() => handleAccess(pdf)}>
+                                    {hasAccess ? <><Download className="mr-2 h-4 w-4"/>Télécharger</> : 'Devenir Premium'}
+                                </Button>
+                            </CardFooter>
+                        </Card>
+                    );
+                })}
             </div>
 
             {!loading && pdfs.length === 0 && !error && (
@@ -122,3 +134,5 @@ export default function PdfsPage() {
         </AppLayout>
     );
 }
+
+    
