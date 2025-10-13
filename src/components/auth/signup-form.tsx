@@ -68,10 +68,14 @@ export function SignupForm() {
         
         let isFirstUser = false;
         try {
+            // This query will fail if the user doesn't have list permissions,
+            // which is expected for normal users. We catch this and default to not-first-user.
             const initialUserCheck = await getDocs(q);
             isFirstUser = initialUserCheck.empty;
         } catch (err) {
-            console.log("Could not perform initial user check, assuming not first user.");
+            // Firestore security rules are correctly preventing this.
+            // We can safely assume this is not the first user.
+            isFirstUser = false;
         }
         
         const profileData = {
@@ -87,27 +91,13 @@ export function SignupForm() {
 
         const profileDocRef = doc(db, "profiles", user.uid);
         
-        setDoc(profileDocRef, profileData)
-          .then(() => {
-            toast({
-                title: "Compte créé avec succès!",
-                description: "Bienvenue sur LE SECRET DU CONCOURS. Vous allez être redirigé.",
-            });
-            router.push("/home");
-          })
-          .catch(async (serverError) => {
-            const permissionError = new FirestorePermissionError({
-              path: profileDocRef.path,
-              operation: 'create',
-              requestResourceData: profileData
-            });
-            errorEmitter.emit('permission-error', permissionError);
-            toast({
-              title: "Erreur de finalisation",
-              description: "Votre compte a été créé, mais votre profil n'a pas pu être sauvegardé. Veuillez contacter le support.",
-              variant: "destructive",
-            });
-          });
+        await setDoc(profileDocRef, profileData);
+
+        toast({
+            title: "Compte créé avec succès!",
+            description: "Bienvenue sur LE SECRET DU CONCOURS. Vous allez être redirigé.",
+        });
+        router.push("/home");
 
     } catch (error: any) {
         if (error.code === 'auth/email-already-in-use') {
@@ -116,16 +106,16 @@ export function SignupForm() {
                 description: "Ce numéro de téléphone est déjà utilisé.",
                 variant: "destructive",
             });
-        } else if (error instanceof FirestorePermissionError) {
-             toast({
-                title: "Erreur de Permission",
-                description: "La création de votre profil a été bloquée. Veuillez contacter le support.",
-                variant: "destructive",
-            });
         } else {
+             // This can catch the setDoc permission error if rules are very strict
+             errorEmitter.emit('permission-error', new FirestorePermissionError({
+                path: `profiles/${auth.currentUser?.uid || 'unknown_user'}`,
+                operation: 'create',
+                requestResourceData: { phone: values.phone, segment: values.segment }
+             }));
              toast({
                 title: "Erreur d'inscription",
-                description: "Une erreur est survenue. Veuillez réessayer.",
+                description: "Impossible de créer le profil. Vérifiez vos permissions ou contactez le support.",
                 variant: "destructive",
             });
              console.error("Signup error:", error);
