@@ -21,8 +21,6 @@ import { useRouter } from "next/navigation"
 import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth"
 import { doc, setDoc, serverTimestamp } from "firebase/firestore"
 import { auth, db } from "@/lib/firebase"
-import { errorEmitter } from "@/firebase/error-emitter"
-import { FirestorePermissionError } from "@/firebase/errors"
 
 const formSchema = z.object({
   fullName: z.string().min(3, { message: "Le nom complet doit contenir au moins 3 caractères." }),
@@ -57,20 +55,17 @@ export function SignupForm() {
         
         await updateProfile(user, { displayName: values.fullName });
         
-        // Default to 'user' and 'gratuit'. The admin role should be assigned manually in Firestore for security.
         const profileData = {
             displayName: values.fullName,
             phone: values.phone,
             competitionType: values.competitionType,
-            role: 'user', // Always default to 'user'
+            role: 'user', // Default to 'user'. First admin must be set manually for security.
             subscription_type: 'gratuit',
             createdAt: serverTimestamp(),
             email: email,
         };
 
         const profileDocRef = doc(db, "users", user.uid);
-        
-        // This is the critical part that was failing silently.
         await setDoc(profileDocRef, profileData);
 
         toast({
@@ -82,11 +77,9 @@ export function SignupForm() {
     } catch (error: any) {
         let description = "Une erreur inconnue est survenue.";
         if (error.code === 'auth/email-already-in-use') {
-            description = "Ce numéro de téléphone est déjà utilisé.";
-        } else if (error.code === 'permission-denied' || error instanceof FirestorePermissionError) {
-            description = "Permission refusée. La création du profil a échoué. Veuillez vérifier les règles de sécurité Firestore.";
+            description = "Ce numéro de téléphone est déjà utilisé. Essayez de vous connecter.";
         }
-         
+        
         toast({
             title: "Erreur d'inscription",
             description: description,
@@ -94,14 +87,6 @@ export function SignupForm() {
         });
         console.error("Signup error:", error);
 
-        // Emit a specific error for better debugging in development
-        if (!(error instanceof FirestorePermissionError)) {
-          errorEmitter.emit('permission-error', new FirestorePermissionError({
-            path: `users/${auth.currentUser?.uid || 'new_user'}`,
-            operation: 'create',
-            requestResourceData: { phone: values.phone, competitionType: values.competitionType, message: "Échec de la création du document utilisateur dans Firestore." }
-          }));
-        }
     } finally {
         setLoading(false);
     }
