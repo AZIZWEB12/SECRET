@@ -92,7 +92,7 @@ export function MainNav({ onLinkClick }: MainNavProps) {
                 </span>
             </Button>
             <Button variant="ghost" onClick={() => { install(); onLinkClick?.(); }} className="hidden md:flex gap-2 text-foreground/60 hover:text-foreground/80 justify-start p-0 h-auto md:text-foreground/60 md:hover:text-foreground/80 font-medium text-sm">
-                Installer
+                Installer l'app
             </Button>
           </CardContent>
         </Card>
