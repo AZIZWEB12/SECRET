@@ -1,15 +1,16 @@
 import type { Timestamp } from 'firebase/firestore';
 
-export type UserSegment = 'direct' | 'professionnel';
+export type UserCompetitionType = 'direct' | 'professionnel';
 export type UserRole = 'user' | 'admin';
 export type SubscriptionType = 'gratuit' | 'premium';
 
-export interface Profile {
-  id: string;
-  displayName: string;
+// Renamed from Profile to UserProfile and collection to 'users'
+export interface UserProfile {
+  id: string; // Corresponds to Firebase Auth UID
+  fullName: string;
   email: string;
   phone: string;
-  segment: UserSegment;
+  competitionType: UserCompetitionType;
   role: UserRole;
   subscription_type: SubscriptionType;
   subscriptionActivatedAt?: Timestamp;
@@ -35,7 +36,7 @@ export interface Quiz {
   access_type: QuizAccessType;
   duration_minutes: number;
   isMockExam: boolean;
-  scheduledFor?: any;
+  scheduledFor?: Timestamp;
   questions: QuizQuestionData[];
   total_questions: number;
   createdAt: Timestamp;
@@ -49,16 +50,15 @@ export interface Document {
     category: string;
     access_type: QuizAccessType;
     url: string;
-    thumbnailUrl?: string;
+    thumbnailUrl?: string; // Kept from previous version, useful for videos
     createdAt: Timestamp;
 }
-
 
 export interface Formation {
     id: string;
     title: string;
     description: string;
-    segment: UserSegment;
+    segment: UserCompetitionType; // Aligning with UserProfile
     premiumOnly: boolean;
     createdAt: Timestamp;
 }
@@ -71,17 +71,17 @@ export interface Transaction {
     approvedAt?: Timestamp;
 }
 
-
-export interface QuizAttempt {
+// Renamed from QuizAttempt to Attempt
+export interface Attempt {
   id: string;
   userId: string;
   quizId: string;
   quizTitle: string;
-  correctCount: number;
+  score: number; // Number of correct answers
   totalQuestions: number;
-  score: number;
+  percentage: number; // The calculated percentage score
   createdAt: Timestamp;
-  details: Record<string, {
+  details?: Record<string, { // Kept details from previous version for correction page
       question: string;
       selected: string[];
       correct: string[];

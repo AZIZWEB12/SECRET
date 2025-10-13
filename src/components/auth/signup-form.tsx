@@ -18,19 +18,19 @@ import { useToast } from "@/hooks/use-toast"
 import { useState } from "react"
 import { Eye, EyeOff, Loader2 } from "lucide-react"
 import { useRouter, useSearchParams } from "next/navigation"
-import { UserSegment } from "@/lib/types"
+import { UserCompetitionType } from "@/lib/types"
 import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth"
 import { doc, setDoc, serverTimestamp, getDocs, collection, query, limit } from "firebase/firestore"
 import { auth, db } from "@/lib/firebase"
 import { errorEmitter } from "@/firebase/error-emitter"
 import { FirestorePermissionError } from "@/firebase/errors"
 
+// Updated schema to match new spec (fullName, competitionType)
 const formSchema = z.object({
-  firstName: z.string().min(2, { message: "Le prénom doit contenir au moins 2 caractères." }),
-  lastName: z.string().min(2, { message: "Le nom doit contenir au moins 2 caractères." }),
+  fullName: z.string().min(3, { message: "Le nom complet doit contenir au moins 3 caractères." }),
   phone: z.string().min(8, { message: "Veuillez entrer un numéro de téléphone valide." }),
   password: z.string().min(6, { message: "Le mot de passe doit contenir au moins 6 caractères."}),
-  segment: z.enum(["direct", "professionnel"], { required_error: "Veuillez choisir un segment." }),
+  competitionType: z.enum(["direct", "professionnel"], { required_error: "Veuillez choisir un type de concours." }),
 })
 
 export function SignupForm() {
@@ -40,16 +40,15 @@ export function SignupForm() {
   const [loading, setLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
 
-  const defaultSegment = searchParams.get('segment') as UserSegment | null
+  const defaultCompetitionType = searchParams.get('competitionType') as UserCompetitionType | null
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      firstName: "",
-      lastName: "",
+      fullName: "",
       phone: "+226",
       password: "",
-      segment: defaultSegment || undefined,
+      competitionType: defaultCompetitionType || undefined,
     },
   })
 
@@ -60,28 +59,24 @@ export function SignupForm() {
         const email = `${values.phone}@gagnetonconcours.app`;
         const userCredential = await createUserWithEmailAndPassword(auth, email, values.password);
         const user = userCredential.user;
-        const displayName = `${values.firstName} ${values.lastName}`;
-        await updateProfile(user, { displayName });
         
-        const profilesCollectionRef = collection(db, "profiles");
-        const q = query(profilesCollectionRef, limit(1));
+        await updateProfile(user, { displayName: values.fullName });
+        
+        const usersCollectionRef = collection(db, "users");
+        const q = query(usersCollectionRef, limit(1));
         
         let isFirstUser = false;
         try {
-            // This query will fail if the user doesn't have list permissions,
-            // which is expected for normal users. We catch this and default to not-first-user.
             const initialUserCheck = await getDocs(q);
             isFirstUser = initialUserCheck.empty;
         } catch (err) {
-            // Firestore security rules are correctly preventing this.
-            // We can safely assume this is not the first user.
             isFirstUser = false;
         }
         
         const profileData = {
-            displayName: displayName,
+            fullName: values.fullName,
             phone: values.phone,
-            segment: values.segment,
+            competitionType: values.competitionType,
             role: isFirstUser ? 'admin' : 'user',
             subscription_type: isFirstUser ? 'premium' : 'gratuit', 
             subscriptionActivatedAt: isFirstUser ? serverTimestamp() : null,
@@ -89,7 +84,7 @@ export function SignupForm() {
             email: email,
         };
 
-        const profileDocRef = doc(db, "profiles", user.uid);
+        const profileDocRef = doc(db, "users", user.uid);
         
         await setDoc(profileDocRef, profileData);
 
@@ -107,11 +102,10 @@ export function SignupForm() {
                 variant: "destructive",
             });
         } else {
-             // This can catch the setDoc permission error if rules are very strict
              errorEmitter.emit('permission-error', new FirestorePermissionError({
-                path: `profiles/${auth.currentUser?.uid || 'unknown_user'}`,
+                path: `users/${auth.currentUser?.uid || 'unknown_user'}`,
                 operation: 'create',
-                requestResourceData: { phone: values.phone, segment: values.segment }
+                requestResourceData: { phone: values.phone, competitionType: values.competitionType }
              }));
              toast({
                 title: "Erreur d'inscription",
@@ -130,25 +124,12 @@ export function SignupForm() {
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
           <FormField
             control={form.control}
-            name="firstName"
+            name="fullName"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Prénom</FormLabel>
+                <FormLabel>Nom et Prénom(s)</FormLabel>
                 <FormControl>
-                  <Input placeholder="John" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="lastName"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Nom</FormLabel>
-                <FormControl>
-                  <Input placeholder="Doe" {...field} />
+                  <Input placeholder="John Doe" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -197,14 +178,14 @@ export function SignupForm() {
           />
           <FormField
             control={form.control}
-            name="segment"
+            name="competitionType"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Segment d'apprentissage</FormLabel>
+                <FormLabel>Type de concours</FormLabel>
                 <Select onValueChange={field.onChange} defaultValue={field.value}>
                   <FormControl>
                     <SelectTrigger>
-                      <SelectValue placeholder="Choisissez votre concours" />
+                      <SelectValue placeholder="Choisissez votre type de concours" />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>

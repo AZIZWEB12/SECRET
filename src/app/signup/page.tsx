@@ -1,3 +1,6 @@
+// src/app/signup/page.tsx
+'use client';
+
 import { SignupForm } from "@/components/auth/signup-form"
 import { AppLogo } from "@/components/shared/app-logo"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
