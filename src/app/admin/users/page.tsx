@@ -1,78 +1,60 @@
-
 'use client';
 import { AppLayout } from "@/components/layout/app-layout";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { collection, onSnapshot, doc, updateDoc, serverTimestamp } from "firebase/firestore";
-import { db } from "@/lib/firebase";
-import { Profile } from "@/lib/types";
-import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertTriangle, Crown, Loader2 } from "lucide-react";
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { useEffect, useState } from "react";
-import { FirestorePermissionError } from "@/firebase/errors";
-import { errorEmitter } from "@/firebase/error-emitter";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { AppUser, getUsersFromFirestore, updateUserSubscriptionInFirestore } from "@/lib/firestore.service";
+import { Badge } from "@/components/ui/badge";
 
 export default function AdminUsersPage() {
-    const [users, setUsers] = useState<Profile[]>([]);
+    const [users, setUsers] = useState<AppUser[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [updatingUserId, setUpdatingUserId] = useState<string | null>(null);
     const { toast } = useToast();
 
     useEffect(() => {
-        const usersCollectionRef = collection(db, 'profiles');
-        const unsubscribe = onSnapshot(usersCollectionRef, 
-            (snapshot) => {
-                const profiles = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Profile));
-                setUsers(profiles);
+        const fetchUsers = async () => {
+            try {
+                const userList = await getUsersFromFirestore();
+                setUsers(userList);
                 setLoading(false);
-                setError(null);
-            },
-            (serverError) => {
+            } catch (err) {
+                setError("Erreur de chargement des utilisateurs.");
                 setLoading(false);
-                setError("Vous n'avez pas les droits nécessaires pour consulter la liste des utilisateurs.");
-                const permissionError = new FirestorePermissionError({
-                    path: usersCollectionRef.path,
-                    operation: 'list',
-                });
-                errorEmitter.emit('permission-error', permissionError);
             }
-        );
-        return () => unsubscribe();
+        };
+        fetchUsers();
     }, []);
 
-    const toggleSubscription = async (userId: string, currentStatus: 'gratuit' | 'premium') => {
+    const toggleSubscription = async (userId: string, currentStatus: 'gratuit' | 'premium' = 'gratuit') => {
         setUpdatingUserId(userId);
-        const userDocRef = doc(db, 'profiles', userId);
         const newStatus = currentStatus === 'premium' ? 'gratuit' : 'premium';
-        const updatedData = { 
-            subscription_type: newStatus,
-            subscriptionActivatedAt: newStatus === 'premium' ? serverTimestamp() : null
-        };
         
-        updateDoc(userDocRef, updatedData)
-            .then(() => {
-                 toast({
-                    title: "Succès",
-                    description: `Abonnement de l'utilisateur mis à jour.`,
-                });
-            })
-            .catch(async (serverError) => {
-                const permissionError = new FirestorePermissionError({
-                    path: userDocRef.path,
-                    operation: 'update',
-                    requestResourceData: updatedData
-                });
-                errorEmitter.emit('permission-error', permissionError);
-            })
-            .finally(() => {
-                 setUpdatingUserId(null);
+        try {
+            await updateUserSubscriptionInFirestore(userId, { type: newStatus, tier: newStatus === 'premium' ? 'annuel' : null });
+            toast({
+                title: "Succès",
+                description: `Abonnement de l'utilisateur mis à jour.`,
             });
+            // Refetch users to update the UI
+            const userList = await getUsersFromFirestore();
+            setUsers(userList);
+        } catch(err) {
+             toast({
+                title: "Erreur",
+                description: "Impossible de mettre à jour l'abonnement.",
+                variant: 'destructive'
+            });
+        } finally {
+            setUpdatingUserId(null);
+        }
     };
 
     return (
@@ -82,7 +64,7 @@ export default function AdminUsersPage() {
             {error && (
                 <Alert variant="destructive">
                     <AlertTriangle className="h-4 w-4" />
-                    <AlertTitle>Erreur de permission</AlertTitle>
+                    <AlertTitle>Erreur</AlertTitle>
                     <AlertDescription>
                         {error}
                     </AlertDescription>
@@ -115,7 +97,7 @@ export default function AdminUsersPage() {
                             ))
                         )}
                         {!loading && users?.map(user => (
-                            <TableRow key={user.id}>
+                            <TableRow key={user.uid}>
                                 <TableCell className="font-medium">{user.displayName}</TableCell>
                                 <TableCell>{user.phone}</TableCell>
                                 <TableCell>
@@ -125,16 +107,16 @@ export default function AdminUsersPage() {
                                     <Badge variant={user.subscription_type === 'premium' ? 'default' : 'outline'}>{user.subscription_type}</Badge>
                                 </TableCell>
                                 <TableCell>
-                                    {user.createdAt ? format(user.createdAt.toDate(), 'dd MMM yyyy', { locale: fr }) : '-'}
+                                    {user.createdAt ? format(user.createdAt, 'dd MMM yyyy', { locale: fr }) : '-'}
                                 </TableCell>
                                 <TableCell className="text-right">
                                     <Button 
                                         variant="outline" 
                                         size="sm"
-                                        onClick={() => toggleSubscription(user.id, user.subscription_type)}
-                                        disabled={updatingUserId === user.id || user.role === 'admin'}
+                                        onClick={() => toggleSubscription(user.uid, user.subscription_type)}
+                                        disabled={updatingUserId === user.uid || user.role === 'admin'}
                                     >
-                                        {updatingUserId === user.id && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                        {updatingUserId === user.uid && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                                         <Crown className="mr-2 h-4 w-4" />
                                         {user.subscription_type === 'premium' ? 'Retirer Premium' : 'Passer Premium'}
                                     </Button>

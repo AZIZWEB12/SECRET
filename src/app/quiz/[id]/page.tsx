@@ -2,9 +2,9 @@
 
 import { AppLayout } from '@/components/layout/app-layout';
 import { db } from '@/lib/firebase';
-import { Quiz, QuizAttempt, QuizQuestionData } from '@/lib/types';
+import { Attempt, Quiz, saveAttemptToFirestore } from '@/lib/firestore.service';
 import { useAuth } from '@/hooks/use-auth';
-import { doc, getDoc, collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, getDoc, serverTimestamp } from 'firebase/firestore';
 import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -43,7 +43,7 @@ export default function TakeQuizPage() {
   const [userAnswers, setUserAnswers] = useState<string[][]>([]);
   const [quizFinished, setQuizFinished] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [attempt, setAttempt] = useState<QuizAttempt | null>(null);
+  const [attempt, setAttempt] = useState<Attempt | null>(null);
 
   const [timeLeft, setTimeLeft] = useState<number | null>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
@@ -54,8 +54,8 @@ export default function TakeQuizPage() {
     setIsSubmitting(true);
     if (timerRef.current) clearInterval(timerRef.current);
 
-    let correctAnswersCount = 0;
-    const attemptDetails: QuizAttempt['details'] = {};
+    let correctCount = 0;
+    const attemptDetails: Attempt['details'] = {};
 
     quiz.questions.forEach((q, index) => {
       const selectedOpts = userAnswers[index] || [];
@@ -64,7 +64,7 @@ export default function TakeQuizPage() {
       const isCorrect = arraysAreEqual(selectedOpts, correctOpts);
       
       if (isCorrect) {
-        correctAnswersCount++;
+        correctCount++;
       }
       
       attemptDetails[index] = {
@@ -75,37 +75,48 @@ export default function TakeQuizPage() {
       };
     });
 
-    const score = Math.round((correctAnswersCount / quiz.questions.length) * 100);
+    const percentage = Math.round((correctCount / quiz.questions.length) * 100);
 
     try {
-        const attemptData: Omit<QuizAttempt, 'id'> = {
+        const attemptData: Omit<Attempt, 'id' | 'createdAt'> = {
             userId: user.uid,
             quizId: quiz.id as string,
             quizTitle: quiz.title,
             totalQuestions: quiz.questions.length,
-            correctCount: correctAnswersCount,
-            score,
+            correctCount,
+            score: percentage,
+            percentage,
             details: attemptDetails,
-            createdAt: serverTimestamp() as any,
         }
-        const docRef = await addDoc(collection(db, 'quizAttempts'), attemptData);
-        setAttempt({ id: docRef.id, ...attemptData });
+        const attemptId = await saveAttemptToFirestore({
+            ...attemptData,
+            createdAt: serverTimestamp() as any,
+        });
+        setAttempt({ id: attemptId, ...attemptData, createdAt: new Date() });
     } catch(err) {
-        errorEmitter.emit('permission-error', new FirestorePermissionError({
-            path: 'quizAttempts',
-            operation: 'create',
-        }));
          // Show a local error if saving the attempt fails, but still show results
         toast({
             variant: "destructive",
             title: "Erreur de sauvegarde",
             description: "Vos résultats n'ont pas pu être sauvegardés, mais vous pouvez voir la correction."
         });
+        const attemptData: Attempt = {
+            userId: user.uid,
+            quizId: quiz.id as string,
+            quizTitle: quiz.title,
+            totalQuestions: quiz.questions.length,
+            correctCount,
+            score: percentage,
+            percentage,
+            details: attemptDetails,
+            createdAt: new Date(),
+        };
+        setAttempt(attemptData);
     }
     
     setQuizFinished(true);
     setIsSubmitting(false);
-  }, [quiz, user, userAnswers, isSubmitting, quizId, toast]);
+  }, [quiz, user, userAnswers, isSubmitting, toast]);
 
 
   useEffect(() => {
@@ -265,7 +276,7 @@ export default function TakeQuizPage() {
     )
   }
 
-  const currentQuestion: QuizQuestionData = quiz.questions[currentQuestionIndex];
+  const currentQuestion = quiz.questions[currentQuestionIndex];
   const progress = ((currentQuestionIndex + 1) / quiz.questions.length) * 100;
   
   const formatTime = (seconds: number) => {

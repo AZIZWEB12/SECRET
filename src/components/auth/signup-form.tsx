@@ -17,17 +17,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast"
 import { useState } from "react"
 import { Eye, EyeOff, Loader2 } from "lucide-react"
-import { useRouter, useSearchParams } from "next/navigation"
-import { UserCompetitionType } from "@/lib/types"
+import { useRouter } from "next/navigation"
 import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth"
 import { doc, setDoc, serverTimestamp, getDocs, collection, query, limit } from "firebase/firestore"
 import { auth, db } from "@/lib/firebase"
 import { errorEmitter } from "@/firebase/error-emitter"
 import { FirestorePermissionError } from "@/firebase/errors"
 
-// Updated schema to match new spec (fullName, competitionType)
 const formSchema = z.object({
-  fullName: z.string().min(3, { message: "Le nom complet doit contenir au moins 3 caractères." }),
+  displayName: z.string().min(3, { message: "Le nom complet doit contenir au moins 3 caractères." }),
   phone: z.string().min(8, { message: "Veuillez entrer un numéro de téléphone valide." }),
   password: z.string().min(6, { message: "Le mot de passe doit contenir au moins 6 caractères."}),
   competitionType: z.enum(["direct", "professionnel"], { required_error: "Veuillez choisir un type de concours." }),
@@ -36,19 +34,16 @@ const formSchema = z.object({
 export function SignupForm() {
   const { toast } = useToast()
   const router = useRouter()
-  const searchParams = useSearchParams()
   const [loading, setLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
-
-  const defaultCompetitionType = searchParams.get('competitionType') as UserCompetitionType | null
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      fullName: "",
+      displayName: "",
       phone: "+226",
       password: "",
-      competitionType: defaultCompetitionType || undefined,
+      competitionType: undefined,
     },
   })
 
@@ -60,7 +55,7 @@ export function SignupForm() {
         const userCredential = await createUserWithEmailAndPassword(auth, email, values.password);
         const user = userCredential.user;
         
-        await updateProfile(user, { displayName: values.fullName });
+        await updateProfile(user, { displayName: values.displayName });
         
         const usersCollectionRef = collection(db, "users");
         const q = query(usersCollectionRef, limit(1));
@@ -74,12 +69,11 @@ export function SignupForm() {
         }
         
         const profileData = {
-            fullName: values.fullName,
+            displayName: values.displayName,
             phone: values.phone,
             competitionType: values.competitionType,
             role: isFirstUser ? 'admin' : 'user',
-            subscription_type: isFirstUser ? 'premium' : 'gratuit', 
-            subscriptionActivatedAt: isFirstUser ? serverTimestamp() : null,
+            subscription_type: isFirstUser ? 'premium' : 'gratuit',
             createdAt: serverTimestamp(),
             email: email,
         };
@@ -124,7 +118,7 @@ export function SignupForm() {
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
           <FormField
             control={form.control}
-            name="fullName"
+            name="displayName"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Nom et Prénom(s)</FormLabel>

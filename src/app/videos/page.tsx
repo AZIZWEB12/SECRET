@@ -4,61 +4,42 @@ import { AppLayout } from '@/components/layout/app-layout';
 import { Card, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Film, Star, PlayCircle } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
-import { Document as DocumentType } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertTriangle } from 'lucide-react';
-import { FirestorePermissionError } from '@/firebase/errors';
-import { errorEmitter } from '@/firebase/error-emitter';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/use-auth';
 import { Badge } from '@/components/ui/badge';
 import Image from 'next/image';
 import { CardDescription } from '@/components/ui/card';
 import { useRouter } from 'next/navigation';
+import { LibraryDocument, getDocumentsFromFirestore } from '@/lib/firestore.service';
 
 export default function VideosPage() {
-    const [videos, setVideos] = useState<DocumentType[]>([]);
+    const [videos, setVideos] = useState<LibraryDocument[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const { profile } = useAuth();
     const router = useRouter();
 
     useEffect(() => {
-        const documentsCollectionRef = collection(db, 'documents');
-        const q = query(documentsCollectionRef, orderBy('createdAt', 'desc'));
-
-        const unsubscribe = onSnapshot(q,
-            (snapshot) => {
-                const videoList = snapshot.docs
-                    .map(doc => ({ id: doc.id, ...doc.data() } as DocumentType))
-                    .filter(doc => doc.type === 'video');
-                setVideos(videoList);
+        getDocumentsFromFirestore()
+            .then(docs => {
+                setVideos(docs.filter(d => d.type === 'video'));
                 setLoading(false);
-                setError(null);
-            },
-            (err) => {
+            })
+            .catch(err => {
+                setError("Erreur de chargement des vidéos.");
                 setLoading(false);
-                setError("Erreur de chargement des vidéos. Vérifiez vos permissions.");
-                const permissionError = new FirestorePermissionError({
-                    path: 'documents',
-                    operation: 'list',
-                });
-                errorEmitter.emit('permission-error', permissionError);
-            }
-        );
-
-        return () => unsubscribe();
+            })
     }, []);
 
-    const canAccess = (video: DocumentType) => {
+    const canAccess = (video: LibraryDocument) => {
         if (video.access_type === 'gratuit') return true;
         return profile?.subscription_type === 'premium';
     };
     
-    const handleAccess = (video: DocumentType) => {
+    const handleAccess = (video: LibraryDocument) => {
         if (canAccess(video)) {
              window.open(video.url, '_blank');
         } else {

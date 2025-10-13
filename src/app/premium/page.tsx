@@ -4,13 +4,10 @@ import { AppLayout } from '@/components/layout/app-layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/hooks/use-auth';
-import { CheckCircle, ShieldCheck, Phone, Copy, Crown, Loader2 } from 'lucide-react';
+import { CheckCircle, Phone, Crown, Loader2, ShieldCheck } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useState } from 'react';
-import { doc, serverTimestamp, updateDoc } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
-import { errorEmitter } from '@/firebase/error-emitter';
-import { FirestorePermissionError } from '@/firebase/errors';
+import { updateUserSubscriptionInFirestore } from '@/lib/firestore.service';
 
 export default function PremiumPage() {
   const { profile, user } = useAuth();
@@ -26,29 +23,21 @@ export default function PremiumPage() {
     
     const newStatus = profile.subscription_type === 'premium' ? 'gratuit' : 'premium';
 
-    const userDocRef = doc(db, 'profiles', user.uid);
-    const updatedData = {
-        subscription_type: newStatus,
-        subscriptionActivatedAt: newStatus === 'premium' ? serverTimestamp() : null
-    };
-
-    updateDoc(userDocRef, updatedData)
-        .then(() => {
-            toast({
-                title: "Statut mis à jour !",
-                description: `Vous êtes maintenant en mode ${newStatus}.`,
-            });
-        })
-        .catch(async (serverError) => {
-            errorEmitter.emit('permission-error', new FirestorePermissionError({
-                path: userDocRef.path,
-                operation: 'update',
-                requestResourceData: updatedData,
-            }));
-        })
-        .finally(() => {
-            setIsSubmitting(false);
+    try {
+        await updateUserSubscriptionInFirestore(user.uid, { type: newStatus, tier: newStatus === 'premium' ? 'annuel' : null });
+        toast({
+            title: "Statut mis à jour !",
+            description: `Vous êtes maintenant en mode ${newStatus}.`,
         });
+    } catch(err) {
+        toast({
+            variant: 'destructive',
+            title: 'Erreur',
+            description: "Impossible de mettre à jour le statut."
+        })
+    } finally {
+        setIsSubmitting(false);
+    }
   };
 
   return (

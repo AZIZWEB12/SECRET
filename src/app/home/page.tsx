@@ -1,4 +1,3 @@
-
 'use client';
 
 import { AppLayout } from '@/components/layout/app-layout';
@@ -9,15 +8,11 @@ import { ArrowRight, BookOpen, FileText, Film, GraduationCap, Award, Star } from
 import { Skeleton } from '@/components/ui/skeleton';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { collection, onSnapshot, query, where } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
-import { QuizAttempt } from '@/lib/types';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertTriangle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import { FirestorePermissionError } from '@/firebase/errors';
-import { errorEmitter } from '@/firebase/error-emitter';
 import { Button } from '@/components/ui/button';
+import { Attempt, getAttemptsFromFirestore } from '@/lib/firestore.service';
 
 const contentCategories = [
   {
@@ -71,37 +66,22 @@ export default function HomePage() {
   useEffect(() => {
       if (user) {
           setLoadingStats(true);
-          const attemptsRef = collection(db, 'quizAttempts');
-          const q = query(attemptsRef, where("userId", "==", user.uid));
-
-          const unsubscribe = onSnapshot(q, 
-              (snapshot) => {
-                  const attempts = snapshot.docs.map(doc => doc.data() as QuizAttempt);
-                  const quizCount = attempts.length;
-                  
-                  if (quizCount > 0) {
-                      const totalCorrect = attempts.reduce((sum, acc) => sum + acc.correctCount, 0);
-                      const totalQuestions = attempts.reduce((sum, acc) => sum + acc.totalQuestions, 0);
-                      const averageScore = totalQuestions > 0 ? Math.round((totalCorrect / totalQuestions) * 100) : 0;
-                      setStats({ quizCount, averageScore });
-                  } else {
-                      setStats({ quizCount: 0, averageScore: 0 });
-                  }
-                  setLoadingStats(false);
-                  setError(null);
-              },
-              (err) => {
-                  setError("Erreur de chargement des statistiques. Vérifiez vos permissions.");
-                  setLoadingStats(false);
-                  const permissionError = new FirestorePermissionError({
-                      path: `quizAttempts`,
-                      operation: 'list',
-                  });
-                  errorEmitter.emit('permission-error', permissionError);
-              }
-          );
-          
-          return () => unsubscribe();
+          getAttemptsFromFirestore(user.uid)
+            .then(attempts => {
+                const quizCount = attempts.length;
+                if (quizCount > 0) {
+                    const totalScore = attempts.reduce((sum, acc) => sum + acc.percentage, 0);
+                    const averageScore = Math.round(totalScore / quizCount);
+                    setStats({ quizCount, averageScore });
+                } else {
+                    setStats({ quizCount: 0, averageScore: 0 });
+                }
+                setLoadingStats(false);
+            })
+            .catch(err => {
+                setError("Erreur de chargement des statistiques.");
+                setLoadingStats(false);
+            })
       }
   }, [user]);
 

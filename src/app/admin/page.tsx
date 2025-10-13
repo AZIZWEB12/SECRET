@@ -1,14 +1,13 @@
-
 'use client';
 
 import { AppLayout } from "@/components/layout/app-layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, BookCopy, FileText, Video, GraduationCap, CreditCard, AlertTriangle, UserCheck } from "lucide-react";
+import { Users, BookCopy, FileText, Video, GraduationCap, CreditCard, UserCheck } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { collection, onSnapshot, query, where, limit, orderBy } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import { Profile } from "@/lib/types";
+import { AppUser } from "@/lib/firestore.service";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -17,6 +16,8 @@ import { formatDistanceToNow } from "date-fns";
 import { fr } from "date-fns/locale";
 import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError } from "@/firebase/errors";
+import { AlertTriangle } from 'lucide-react';
+
 
 const adminLinks = [
     { href: "/admin/users", title: "Gérer les Utilisateurs", icon: Users },
@@ -29,20 +30,20 @@ const adminLinks = [
 
 export default function AdminDashboardPage() {
     const [stats, setStats] = useState({ totalUsers: 0, premiumUsers: 0, pendingTransactions: 0 });
-    const [recentUsers, setRecentUsers] = useState<Profile[]>([]);
+    const [recentUsers, setRecentUsers] = useState<AppUser[]>([]);
     const [loadingStats, setLoadingStats] = useState(true);
     const [loadingUsers, setLoadingUsers] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
         // --- Fetch Stats ---
-        const profilesRef = collection(db, 'profiles');
+        const usersRef = collection(db, 'users');
         const transactionsRef = collection(db, 'transactions');
 
-        const unsubStats = onSnapshot(profilesRef, 
-            (profileSnapshot) => {
-                const totalUsers = profileSnapshot.size;
-                const premiumUsers = profileSnapshot.docs.filter(doc => doc.data().subscription_type === 'premium').length;
+        const unsubStats = onSnapshot(usersRef, 
+            (userSnapshot) => {
+                const totalUsers = userSnapshot.size;
+                const premiumUsers = userSnapshot.docs.filter(doc => doc.data().subscription_type === 'premium').length;
                 
                 const q = query(transactionsRef, where("status", "==", "pending"));
                 const unsubTransactions = onSnapshot(q, 
@@ -71,7 +72,7 @@ export default function AdminDashboardPage() {
                 setError("Erreur de lecture des profils.");
                 setLoadingStats(false);
                 const permissionError = new FirestorePermissionError({
-                    path: profilesRef.path,
+                    path: usersRef.path,
                     operation: 'list',
                 });
                 errorEmitter.emit('permission-error', permissionError);
@@ -79,10 +80,10 @@ export default function AdminDashboardPage() {
         );
 
         // --- Fetch Recent Users ---
-        const recentUsersQuery = query(collection(db, "profiles"), orderBy("createdAt", "desc"), limit(5));
+        const recentUsersQuery = query(collection(db, "users"), orderBy("createdAt", "desc"), limit(5));
         const unsubRecentUsers = onSnapshot(recentUsersQuery, 
             (snapshot) => {
-                const users = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Profile));
+                const users = snapshot.docs.map(doc => ({ uid: doc.id, ...doc.data() } as AppUser));
                 setRecentUsers(users);
                 setLoadingUsers(false);
             },
@@ -90,7 +91,7 @@ export default function AdminDashboardPage() {
                 setError("Erreur de lecture des utilisateurs récents.");
                 setLoadingUsers(false);
                  const permissionError = new FirestorePermissionError({
-                    path: 'profiles',
+                    path: 'users',
                     operation: 'list',
                 });
                 errorEmitter.emit('permission-error', permissionError);
@@ -169,10 +170,10 @@ export default function AdminDashboardPage() {
                                     </TableRow>
                                 ))}
                                 {!loadingUsers && recentUsers.map(user => (
-                                    <TableRow key={user.id}>
+                                    <TableRow key={user.uid}>
                                         <TableCell className="font-medium">{user.displayName}</TableCell>
                                         <TableCell className="text-muted-foreground text-sm">
-                                            {user.createdAt ? formatDistanceToNow(user.createdAt.toDate(), { addSuffix: true, locale: fr }) : '-'}
+                                            {user.createdAt ? formatDistanceToNow(user.createdAt, { addSuffix: true, locale: fr }) : '-'}
                                         </TableCell>
                                         <TableCell>
                                              <Badge variant={user.subscription_type === 'premium' ? 'default' : 'secondary'}>

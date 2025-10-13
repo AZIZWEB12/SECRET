@@ -2,9 +2,9 @@
 
 import { AppLayout } from '@/components/layout/app-layout';
 import { db } from '@/lib/firebase';
-import { QuizAttempt } from '@/lib/types';
+import { Attempt } from '@/lib/firestore.service';
 import { doc, getDoc } from 'firebase/firestore';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -31,7 +31,7 @@ const arraysAreEqual = (arr1: string[], arr2: string[]) => {
 export default function QuizResultPage() {
   const { attemptId } = useParams();
   const { user, loading: authLoading } = useAuth();
-  const [attempt, setAttempt] = useState<QuizAttempt | null>(null);
+  const [attempt, setAttempt] = useState<Attempt | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -46,11 +46,11 @@ export default function QuizResultPage() {
     const fetchAttempt = async () => {
       setLoading(true);
       setError(null);
-      const attemptDocRef = doc(db, 'quizAttempts', attemptId as string);
+      const attemptDocRef = doc(db, 'attempts', attemptId as string);
       try {
         const docSnap = await getDoc(attemptDocRef);
         if (docSnap.exists()) {
-          const attemptData = { id: docSnap.id, ...docSnap.data() } as QuizAttempt;
+          const attemptData = { id: docSnap.id, ...docSnap.data() } as Attempt;
           // Security check: ensure the user owns this attempt
           if (attemptData.userId !== user.uid) {
             setError("Vous n'êtes pas autorisé à voir ces résultats.");
@@ -102,7 +102,7 @@ export default function QuizResultPage() {
     return null;
   }
   
-  const getResultIcon = (detail: QuizAttempt['details'][string]) => {
+  const getResultIcon = (detail: Attempt['details'][string]) => {
       const isCorrect = arraysAreEqual(detail.selected, detail.correct);
       if(isCorrect) return <CheckCircle className="h-5 w-5 text-green-500 flex-shrink-0" />;
       if(detail.selected.length === 0) return <HelpCircle className="h-5 w-5 text-yellow-500 flex-shrink-0" />;
@@ -116,7 +116,7 @@ export default function QuizResultPage() {
                 <CardHeader>
                     <CardTitle className="text-2xl">Correction du quiz : {attempt.quizTitle}</CardTitle>
                     <CardDescription>
-                        Résultats de votre tentative du {attempt.createdAt ? new Date(attempt.createdAt.toDate()).toLocaleDateString('fr-FR') : ''}
+                        Résultats de votre tentative du {attempt.createdAt ? new Date(attempt.createdAt).toLocaleDateString('fr-FR') : ''}
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -128,13 +128,13 @@ export default function QuizResultPage() {
                             </p>
                         </div>
                          <div className="w-full sm:w-auto flex-grow max-w-xs">
-                             <Progress value={attempt.score} />
-                             <p className="text-center text-sm text-muted-foreground mt-1">{attempt.score}% de réussite</p>
+                             <Progress value={attempt.percentage} />
+                             <p className="text-center text-sm text-muted-foreground mt-1">{attempt.percentage}% de réussite</p>
                          </div>
                     </div>
 
                     <div className="space-y-6">
-                        {Object.entries(attempt.details).map(([index, detail]) => (
+                        {attempt.details && Object.entries(attempt.details).map(([index, detail]) => (
                             <div key={index}>
                                 <div className="flex items-start gap-4">
                                      {getResultIcon(detail)}

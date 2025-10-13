@@ -6,7 +6,7 @@ import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/ca
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { CreditCard, Check, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { collection, onSnapshot, query, where, orderBy, doc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, onSnapshot, query, orderBy, doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Transaction } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -64,10 +64,11 @@ export default function AdminPaymentsPage() {
             await updateDoc(transactionRef, updateData);
             
             if (newStatus === 'approved') {
-                const userProfileRef = doc(db, 'profiles', transaction.userId);
+                const userProfileRef = doc(db, 'users', transaction.userId);
                 await updateDoc(userProfileRef, { 
                     subscription_type: 'premium',
-                    subscriptionActivatedAt: serverTimestamp() 
+                    subscription_tier: 'annuel', // or 'mensuel' depending on your logic
+                    subscription_expires_at: serverTimestamp() // You should calculate the expiry date
                 });
             }
 
@@ -84,8 +85,8 @@ export default function AdminPaymentsPage() {
             errorEmitter.emit('permission-error', permissionError);
 
              if (newStatus === 'approved') {
-                 const userProfileRef = doc(db, 'profiles', transaction.userId);
-                 const userProfileUpdateData = { subscription_type: 'premium', subscriptionActivatedAt: serverTimestamp() };
+                 const userProfileRef = doc(db, 'users', transaction.userId);
+                 const userProfileUpdateData = { subscription_type: 'premium', subscription_tier: 'annuel' };
                  errorEmitter.emit('permission-error', new FirestorePermissionError({
                     path: userProfileRef.path,
                     operation: 'update',

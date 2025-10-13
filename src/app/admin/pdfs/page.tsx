@@ -6,68 +6,52 @@ import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/ca
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { FileText, PlusCircle, Trash2, Edit, Star } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { collection, onSnapshot, query, orderBy, deleteDoc, doc } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
-import { Document as DocumentType } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertTriangle } from 'lucide-react';
-import { FirestorePermissionError } from '@/firebase/errors';
-import { errorEmitter } from '@/firebase/error-emitter';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { Badge } from '@/components/ui/badge';
 import { AddPdfDialog } from '@/components/admin/add-pdf-dialog';
+import { LibraryDocument, getDocumentsFromFirestore, deleteDocumentFromFirestore } from '@/lib/firestore.service';
 
 export default function AdminPdfsPage() {
-    const [pdfs, setPdfs] = useState<DocumentType[]>([]);
+    const [pdfs, setPdfs] = useState<LibraryDocument[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
 
+    const fetchDocuments = async () => {
+        setLoading(true);
+        try {
+            const allDocs = await getDocumentsFromFirestore();
+            setPdfs(allDocs.filter(doc => doc.type === 'pdf'));
+            setLoading(false);
+        } catch (err) {
+            setError("Erreur de chargement des PDFs.");
+            setLoading(false);
+        }
+    };
+
     useEffect(() => {
-        const documentsCollectionRef = collection(db, 'documents');
-        const q = query(documentsCollectionRef, orderBy('createdAt', 'desc'));
-
-        const unsubscribe = onSnapshot(q,
-            (snapshot) => {
-                const docList = snapshot.docs
-                    .map(doc => ({ id: doc.id, ...doc.data() } as DocumentType))
-                    .filter(doc => doc.type === 'pdf');
-                setPdfs(docList);
-                setLoading(false);
-                setError(null);
-            },
-            (err) => {
-                setLoading(false);
-                setError("Erreur de chargement des PDFs.");
-                const permissionError = new FirestorePermissionError({
-                    path: 'documents',
-                    operation: 'list',
-                });
-                errorEmitter.emit('permission-error', permissionError);
-            }
-        );
-
-        return () => unsubscribe();
+        fetchDocuments();
     }, []);
 
     const handleDelete = async (id: string) => {
         if (!confirm("Êtes-vous sûr de vouloir supprimer ce PDF ?")) {
             return;
         }
-        const docRef = doc(db, 'documents', id);
-        deleteDoc(docRef).catch(err => {
-             errorEmitter.emit('permission-error', new FirestorePermissionError({
-                path: docRef.path,
-                operation: 'delete',
-            }));
-        });
+        try {
+            await deleteDocumentFromFirestore(id);
+            fetchDocuments(); // Refresh list
+        } catch (err) {
+            setError("Erreur lors de la suppression du PDF.");
+        }
     }
 
   return (
     <AppLayout>
-       <AddPdfDialog isOpen={isAddDialogOpen} onOpenChange={setIsAddDialogOpen} />
+       <AddPdfDialog isOpen={isAddDialogOpen} onOpenChange={setIsAddDialogOpen} onPdfAdded={fetchDocuments} />
       <div className="flex justify-between items-center mb-8">
         <div>
             <h1 className="text-3xl font-bold tracking-tight font-headline">Gérer les PDFs</h1>
@@ -136,7 +120,7 @@ export default function AdminPdfsPage() {
                                     <Badge variant="secondary">Gratuit</Badge>
                                 )}
                             </TableCell>
-                            <TableCell>{pdf.createdAt ? format(pdf.createdAt.toDate(), 'dd/MM/yyyy', { locale: fr }) : '-'}</TableCell>
+                            <TableCell>{pdf.createdAt ? format(pdf.createdAt, 'dd/MM/yyyy', { locale: fr }) : '-'}</TableCell>
                             <TableCell className="text-right">
                                <Button variant="ghost" size="icon" disabled>
                                     <Edit className="h-4 w-4" />

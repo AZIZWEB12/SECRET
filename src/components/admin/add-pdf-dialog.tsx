@@ -9,18 +9,16 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
-import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
-import { errorEmitter } from '@/firebase/error-emitter';
-import { FirestorePermissionError } from '@/firebase/errors';
 import { PdfForm, PdfFormValues } from './pdf-form';
+import { addDocumentToFirestore } from '@/lib/firestore.service';
 
 interface AddPdfDialogProps {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
+  onPdfAdded: () => void;
 }
 
-export function AddPdfDialog({ isOpen, onOpenChange }: AddPdfDialogProps) {
+export function AddPdfDialog({ isOpen, onOpenChange, onPdfAdded }: AddPdfDialogProps) {
   const [isSaving, setIsSaving] = useState(false);
   const { toast } = useToast();
 
@@ -28,31 +26,18 @@ export function AddPdfDialog({ isOpen, onOpenChange }: AddPdfDialogProps) {
     setIsSaving(true);
     
     try {
-      const collectionRef = collection(db, 'documents');
-      const newDocData = {
-        title: values.title,
-        category: values.category,
-        access_type: values.access_type,
-        url: values.url,
+      await addDocumentToFirestore({
+        ...values,
         type: 'pdf',
-        createdAt: serverTimestamp(),
-      };
-
-      await addDoc(collectionRef, newDocData);
+      });
 
       toast({
         title: 'PDF sauvegardé !',
         description: 'Le nouveau PDF a été ajouté à la collection.',
       });
+      onPdfAdded();
       handleClose();
     } catch (error) {
-       errorEmitter.emit(
-        'permission-error',
-        new FirestorePermissionError({
-          path: 'documents',
-          operation: 'create',
-        })
-      );
       toast({
         title: 'Erreur de sauvegarde',
         description: 'Impossible de sauvegarder le PDF. Vérifiez vos permissions.',

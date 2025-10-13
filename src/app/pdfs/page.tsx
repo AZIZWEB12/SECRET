@@ -4,59 +4,40 @@ import { AppLayout } from '@/components/layout/app-layout';
 import { Card, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { FileText, Star, Download } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
-import { Document as DocumentType } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertTriangle } from 'lucide-react';
-import { FirestorePermissionError } from '@/firebase/errors';
-import { errorEmitter } from '@/firebase/error-emitter';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/use-auth';
 import { Badge } from '@/components/ui/badge';
 import { useRouter } from 'next/navigation';
+import { LibraryDocument, getDocumentsFromFirestore } from '@/lib/firestore.service';
 
 export default function PdfsPage() {
-    const [pdfs, setPdfs] = useState<DocumentType[]>([]);
+    const [pdfs, setPdfs] = useState<LibraryDocument[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const { profile } = useAuth();
     const router = useRouter();
 
     useEffect(() => {
-        const documentsCollectionRef = collection(db, 'documents');
-        const q = query(documentsCollectionRef, orderBy('createdAt', 'desc'));
-
-        const unsubscribe = onSnapshot(q,
-            (snapshot) => {
-                const pdfList = snapshot.docs
-                    .map(doc => ({ id: doc.id, ...doc.data() } as DocumentType))
-                    .filter(doc => doc.type === 'pdf');
-                setPdfs(pdfList);
+        getDocumentsFromFirestore()
+            .then(docs => {
+                setPdfs(docs.filter(d => d.type === 'pdf'));
                 setLoading(false);
-                setError(null);
-            },
-            (err) => {
+            })
+            .catch(err => {
+                setError("Erreur de chargement des PDF.");
                 setLoading(false);
-                setError("Erreur de chargement des PDF. Vérifiez vos permissions.");
-                const permissionError = new FirestorePermissionError({
-                    path: 'documents',
-                    operation: 'list',
-                });
-                errorEmitter.emit('permission-error', permissionError);
-            }
-        );
-
-        return () => unsubscribe();
+            })
     }, []);
 
-    const canAccess = (pdf: DocumentType) => {
+    const canAccess = (pdf: LibraryDocument) => {
         if (pdf.access_type === 'gratuit') return true;
         return profile?.subscription_type === 'premium';
     };
     
-    const handleAccess = (pdf: DocumentType) => {
+    const handleAccess = (pdf: LibraryDocument) => {
         if (canAccess(pdf)) {
              window.open(pdf.url, '_blank');
         } else {

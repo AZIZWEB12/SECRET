@@ -9,18 +9,16 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
-import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
-import { errorEmitter } from '@/firebase/error-emitter';
-import { FirestorePermissionError } from '@/firebase/errors';
 import { VideoForm, VideoFormValues } from './video-form';
+import { addDocumentToFirestore } from '@/lib/firestore.service';
 
 interface AddVideoDialogProps {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
+  onVideoAdded: () => void;
 }
 
-export function AddVideoDialog({ isOpen, onOpenChange }: AddVideoDialogProps) {
+export function AddVideoDialog({ isOpen, onOpenChange, onVideoAdded }: AddVideoDialogProps) {
   const [isSaving, setIsSaving] = useState(false);
   const { toast } = useToast();
 
@@ -28,33 +26,19 @@ export function AddVideoDialog({ isOpen, onOpenChange }: AddVideoDialogProps) {
     setIsSaving(true);
     
     try {
-      const collectionRef = collection(db, 'documents');
-      const newDocData = {
-        title: values.title,
-        category: values.category,
-        access_type: values.access_type,
-        url: values.url,
-        thumbnailUrl: values.thumbnailUrl,
+      await addDocumentToFirestore({
+        ...values,
         type: 'video',
-        createdAt: serverTimestamp(),
-      };
-
-      await addDoc(collectionRef, newDocData);
+      });
 
       toast({
         title: 'Vidéo sauvegardée !',
         description: 'La nouvelle vidéo a été ajoutée à la collection.',
       });
+      onVideoAdded();
       handleClose();
     } catch (error) {
-       errorEmitter.emit(
-        'permission-error',
-        new FirestorePermissionError({
-          path: 'documents',
-          operation: 'create',
-        })
-      );
-      toast({
+       toast({
         title: 'Erreur de sauvegarde',
         description: 'Impossible de sauvegarder la vidéo. Vérifiez vos permissions.',
         variant: 'destructive',

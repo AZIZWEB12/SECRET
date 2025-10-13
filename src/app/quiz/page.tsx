@@ -2,21 +2,17 @@
 
 import { AppLayout } from '@/components/layout/app-layout';
 import { Card, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
-import { BookOpen, Star, ShieldAlert, Clock } from 'lucide-react';
+import { BookOpen, Star, Clock } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
-import { Quiz } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertTriangle } from 'lucide-react';
-import { FirestorePermissionError } from '@/firebase/errors';
-import { errorEmitter } from '@/firebase/error-emitter';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/use-auth';
 import { Badge } from '@/components/ui/badge';
 import { useRouter } from 'next/navigation';
+import { Quiz, getQuizzesFromFirestore } from '@/lib/firestore.service';
 
 export default function QuizPage() {
     const [quizzes, setQuizzes] = useState<Quiz[]>([]);
@@ -26,28 +22,15 @@ export default function QuizPage() {
     const router = useRouter();
 
     useEffect(() => {
-        const quizzesCollectionRef = collection(db, 'quizzes');
-        const q = query(quizzesCollectionRef, orderBy('createdAt', 'desc'));
-
-        const unsubscribe = onSnapshot(q,
-            (snapshot) => {
-                const quizList = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Quiz));
+        getQuizzesFromFirestore()
+            .then(quizList => {
                 setQuizzes(quizList);
                 setLoading(false);
-                setError(null);
-            },
-            (err) => {
+            })
+            .catch(err => {
                 setLoading(false);
-                setError("Erreur de chargement des quiz. Vérifiez vos permissions.");
-                const permissionError = new FirestorePermissionError({
-                    path: 'quizzes',
-                    operation: 'list',
-                });
-                errorEmitter.emit('permission-error', permissionError);
-            }
-        );
-
-        return () => unsubscribe();
+                setError("Erreur de chargement des quiz.");
+            });
     }, []);
 
     const handleQuizClick = (quiz: Quiz) => {

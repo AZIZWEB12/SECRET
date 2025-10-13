@@ -1,4 +1,3 @@
-
 'use client';
 
 import { AppLayout } from "@/components/layout/app-layout";
@@ -15,21 +14,19 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { doc, updateDoc, collection, query, where, onSnapshot } from "firebase/firestore";
+import { doc, updateDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
-import { FirestorePermissionError } from "@/firebase/errors";
-import { errorEmitter } from "@/firebase/error-emitter";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { QuizAttempt } from "@/lib/types";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
+import { Attempt, getAttemptsFromFirestore } from "@/lib/firestore.service";
 
 const profileFormSchema = z.object({
   displayName: z.string().min(2, "Le nom est trop court."),
   phone: z.string().min(8, "Le numéro de téléphone est trop court."),
-  segment: z.enum(["direct", "professionnel"]),
+  competitionType: z.enum(["direct", "professionnel"]),
 });
 
 type ProfileFormData = z.infer<typeof profileFormSchema>;
@@ -53,7 +50,7 @@ export default function ProfilePage() {
       defaultValues: {
         displayName: '',
         phone: '',
-        segment: 'direct'
+        competitionType: 'direct'
       }
     });
 
@@ -65,7 +62,7 @@ export default function ProfilePage() {
             form.reset({
                 displayName: profile.displayName || '',
                 phone: profile.phone || '',
-                segment: profile.segment,
+                competitionType: profile.competitionType as 'direct' | 'professionnel' || 'direct',
             });
         }
     }, [user, profile, loading, router, form]);
@@ -73,35 +70,23 @@ export default function ProfilePage() {
      useEffect(() => {
       if (user) {
           setLoadingStats(true);
-          const attemptsRef = collection(db, 'quizAttempts');
-          const q = query(attemptsRef, where("userId", "==", user.uid));
-
-          const unsubscribe = onSnapshot(q, 
-              (snapshot) => {
-                  const attempts = snapshot.docs.map(doc => doc.data() as QuizAttempt);
-                  const quizCount = attempts.length;
-                  
-                  if (quizCount > 0) {
-                      const totalCorrect = attempts.reduce((sum, acc) => sum + acc.correctCount, 0);
-                      const totalQuestions = attempts.reduce((sum, acc) => sum + acc.totalQuestions, 0);
-                      const averageScore = totalQuestions > 0 ? Math.round((totalCorrect / totalQuestions) * 100) : 0;
-                      setStats({ quizCount, totalCorrect, averageScore });
-                  } else {
-                      setStats({ quizCount: 0, totalCorrect: 0, averageScore: 0 });
-                  }
-                  setLoadingStats(false);
-              },
-              (err) => {
-                   const permissionError = new FirestorePermissionError({
-                      path: `quizAttempts`,
-                      operation: 'list',
-                  });
-                  errorEmitter.emit('permission-error', permissionError);
-                  setLoadingStats(false);
-              }
-          );
-          
-          return () => unsubscribe();
+          getAttemptsFromFirestore(user.uid)
+            .then(attempts => {
+                const quizCount = attempts.length;
+                if (quizCount > 0) {
+                    const totalCorrect = attempts.reduce((sum, acc) => sum + acc.correctCount, 0);
+                    const totalQuestions = attempts.reduce((sum, acc) => sum + acc.totalQuestions, 0);
+                    const averageScore = totalQuestions > 0 ? Math.round((totalCorrect / totalQuestions) * 100) : 0;
+                    setStats({ quizCount, totalCorrect, averageScore });
+                } else {
+                    setStats({ quizCount: 0, totalCorrect: 0, averageScore: 0 });
+                }
+                setLoadingStats(false);
+            })
+            .catch(err => {
+                console.error("Error fetching stats:", err);
+                setLoadingStats(false);
+            })
       }
   }, [user]);
 
@@ -115,28 +100,21 @@ export default function ProfilePage() {
       if (!user) return;
       setIsSubmitting(true);
       
-      const profileRef = doc(db, 'profiles', user.uid);
+      const profileRef = doc(db, 'users', user.uid);
       const updatedData = {
         displayName: data.displayName,
         phone: data.phone,
-        segment: data.segment,
+        competitionType: data.competitionType,
       };
 
-      updateDoc(profileRef, updatedData)
-        .then(() => {
-          toast({ title: "Profil mis à jour avec succès!" });
-        })
-        .catch(async (serverError) => {
-          const permissionError = new FirestorePermissionError({
-              path: profileRef.path,
-              operation: 'update',
-              requestResourceData: updatedData
-          });
-          errorEmitter.emit('permission-error', permissionError);
-        })
-        .finally(() => {
-            setIsSubmitting(false);
-        });
+      try {
+        await updateDoc(profileRef, updatedData);
+        toast({ title: "Profil mis à jour avec succès!" });
+      } catch(err) {
+         toast({ title: "Erreur", description: "Impossible de mettre à jour le profil.", variant: 'destructive'});
+      } finally {
+        setIsSubmitting(false);
+      }
     };
 
     if (loading || !user || !profile) {
@@ -166,12 +144,7 @@ export default function ProfilePage() {
                             <Badge variant={profile.subscription_type === 'premium' ? "default" : "secondary"}>
                                 {profile.subscription_type}
                             </Badge>
-                            <Badge variant="outline">{profile.segment === 'direct' ? 'Concours Direct' : 'Concours Professionnel'}</Badge>
-                            {profile.subscriptionActivatedAt && (
-                                <Badge variant="outline" className="bg-green-100 text-green-800">
-                                    Activé le: {format(profile.subscriptionActivatedAt.toDate(), 'dd/MM/yyyy', { locale: fr })}
-                                </Badge>
-                            )}
+                            <Badge variant="outline">{profile.competitionType === 'direct' ? 'Concours Direct' : 'Concours Professionnel'}</Badge>
                         </div>
                     </div>
                 </div>
@@ -212,11 +185,11 @@ export default function ProfilePage() {
                                     />
                                     <FormField
                                         control={form.control}
-                                        name="segment"
+                                        name="competitionType"
                                         render={({ field }) => (
                                           <FormItem>
                                             <FormLabel>Segment d'apprentissage</FormLabel>
-                                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                            <Select onValueChange={field.onChange} value={field.value}>
                                                 <FormControl>
                                                     <SelectTrigger>
                                                         <SelectValue />
