@@ -2,7 +2,7 @@
 'use client';
 import { AppLayout } from "@/components/layout/app-layout";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { collection, onSnapshot, doc, updateDoc } from "firebase/firestore";
+import { collection, onSnapshot, doc, updateDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { Profile } from "@/lib/types";
 import { Badge } from "@/components/ui/badge";
@@ -46,16 +46,20 @@ export default function AdminUsersPage() {
         return () => unsubscribe();
     }, []);
 
-    const togglePremium = async (userId: string, currentStatus: boolean) => {
+    const toggleSubscription = async (userId: string, currentStatus: 'gratuit' | 'premium') => {
         setUpdatingUserId(userId);
         const userDocRef = doc(db, 'profiles', userId);
-        const updatedData = { isPremium: !currentStatus };
+        const newStatus = currentStatus === 'premium' ? 'gratuit' : 'premium';
+        const updatedData = { 
+            subscription_type: newStatus,
+            subscriptionActivatedAt: newStatus === 'premium' ? serverTimestamp() : null
+        };
         
         updateDoc(userDocRef, updatedData)
             .then(() => {
                  toast({
                     title: "Succès",
-                    description: `Statut premium de l'utilisateur mis à jour.`,
+                    description: `Abonnement de l'utilisateur mis à jour.`,
                 });
             })
             .catch(async (serverError) => {
@@ -92,7 +96,7 @@ export default function AdminUsersPage() {
                             <TableHead>Nom</TableHead>
                             <TableHead>Téléphone</TableHead>
                             <TableHead>Rôle</TableHead>
-                            <TableHead>Premium</TableHead>
+                            <TableHead>Abonnement</TableHead>
                             <TableHead>Inscrit le</TableHead>
                             <TableHead className="text-right">Action</TableHead>
                         </TableRow>
@@ -106,7 +110,7 @@ export default function AdminUsersPage() {
                                     <TableCell><Skeleton className="h-6 w-16" /></TableCell>
                                     <TableCell><Skeleton className="h-6 w-16" /></TableCell>
                                     <TableCell><Skeleton className="h-6 w-28" /></TableCell>
-                                    <TableCell><Skeleton className="h-8 w-24 float-right" /></TableCell>
+                                    <TableCell><Skeleton className="h-8 w-32 float-right" /></TableCell>
                                 </TableRow>
                             ))
                         )}
@@ -118,7 +122,7 @@ export default function AdminUsersPage() {
                                     <Badge variant={user.role === 'admin' ? 'destructive' : 'secondary'}>{user.role}</Badge>
                                 </TableCell>
                                 <TableCell>
-                                    <Badge variant={user.isPremium ? 'default' : 'outline'}>{user.isPremium ? 'Oui' : 'Non'}</Badge>
+                                    <Badge variant={user.subscription_type === 'premium' ? 'default' : 'outline'}>{user.subscription_type}</Badge>
                                 </TableCell>
                                 <TableCell>
                                     {user.createdAt ? format(user.createdAt.toDate(), 'dd MMM yyyy', { locale: fr }) : '-'}
@@ -127,12 +131,12 @@ export default function AdminUsersPage() {
                                     <Button 
                                         variant="outline" 
                                         size="sm"
-                                        onClick={() => togglePremium(user.id, user.isPremium)}
+                                        onClick={() => toggleSubscription(user.id, user.subscription_type)}
                                         disabled={updatingUserId === user.id || user.role === 'admin'}
                                     >
                                         {updatingUserId === user.id && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                                         <Crown className="mr-2 h-4 w-4" />
-                                        {user.isPremium ? 'Retirer' : 'Activer'}
+                                        {user.subscription_type === 'premium' ? 'Retirer Premium' : 'Passer Premium'}
                                     </Button>
                                 </TableCell>
                             </TableRow>
@@ -150,4 +154,3 @@ export default function AdminUsersPage() {
         </AppLayout>
     );
 }
-

@@ -43,7 +43,7 @@ export function LoginForm() {
     setLoading(true);
 
     try {
-        const email = `${values.phone}@concours-master-prep.com`;
+        const email = `${values.phone}@gagnetonconcours.app`;
         await signInWithEmailAndPassword(auth, email, values.password);
 
         toast({

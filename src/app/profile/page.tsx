@@ -163,13 +163,13 @@ export default function ProfilePage() {
                         <h1 className="text-3xl font-bold font-headline">{profile.displayName}</h1>
                         <p className="text-muted-foreground">{user.phoneNumber || profile.phone}</p>
                         <div className="mt-2 flex flex-wrap items-center gap-2 justify-center md:justify-start">
-                            <Badge variant={profile.isPremium ? "default" : "secondary"}>
-                                {profile.isPremium ? "Premium" : "Gratuit"}
+                            <Badge variant={profile.subscription_type === 'premium' ? "default" : "secondary"}>
+                                {profile.subscription_type}
                             </Badge>
                             <Badge variant="outline">{profile.segment === 'direct' ? 'Concours Direct' : 'Concours Professionnel'}</Badge>
-                            {profile.premiumActivatedAt && (
+                            {profile.subscriptionActivatedAt && (
                                 <Badge variant="outline" className="bg-green-100 text-green-800">
-                                    Activé le: {format(profile.premiumActivatedAt.toDate(), 'dd/MM/yyyy', { locale: fr })}
+                                    Activé le: {format(profile.subscriptionActivatedAt.toDate(), 'dd/MM/yyyy', { locale: fr })}
                                 </Badge>
                             )}
                         </div>

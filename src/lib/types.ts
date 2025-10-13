@@ -11,19 +11,13 @@ export interface Profile {
   phone: string;
   segment: UserSegment;
   role: UserRole;
-  isPremium: boolean;
-  premiumActivatedAt?: Timestamp;
+  subscription_type: SubscriptionType;
+  subscriptionActivatedAt?: Timestamp;
   createdAt: Timestamp;
 }
 
 export type QuizDifficulty = 'facile' | 'moyen' | 'difficile';
 export type QuizAccessType = 'gratuit' | 'premium';
-
-export interface QuizQuestionOption {
-    label: string;
-    text: string;
-    is_correct: boolean;
-}
 
 export interface QuizQuestionData {
   question: string;
@@ -36,29 +30,25 @@ export interface Quiz {
   id: string;
   title: string;
   description: string;
-  segment: UserSegment;
+  category: string;
   difficulty: QuizDifficulty;
-  premiumOnly: boolean;
-  durationMinutes?: number;
+  access_type: QuizAccessType;
+  duration_minutes: number;
+  isMockExam: boolean;
+  scheduledFor?: any;
   questions: QuizQuestionData[];
+  total_questions: number;
   createdAt: Timestamp;
+  updatedAt?: Timestamp;
 }
 
-export interface PDF {
+export interface Document {
     id: string;
     title: string;
-    segment: UserSegment;
-    premiumOnly: boolean;
-    fileUrl: string;
-    createdAt: Timestamp;
-}
-
-export interface Video {
-    id: string;
-    title: string;
-    segment: UserSegment;
-    premiumOnly: boolean;
-    videoUrl: string;
+    type: 'pdf' | 'video';
+    category: string;
+    access_type: QuizAccessType;
+    url: string;
     thumbnailUrl?: string;
     createdAt: Timestamp;
 }
@@ -73,7 +63,7 @@ export interface Formation {
     createdAt: Timestamp;
 }
 
-export interface Payment {
+export interface Transaction {
     id: string;
     userId: string;
     status: 'pending' | 'approved' | 'rejected';

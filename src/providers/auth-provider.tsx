@@ -4,14 +4,14 @@ import { createContext, useState, useEffect, ReactNode } from 'react';
 import { onAuthStateChanged, User } from 'firebase/auth';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
-import { UserProfile } from '@/lib/types';
+import { Profile } from '@/lib/types';
 import { FirebaseErrorListener } from '@/components/FirebaseErrorListener';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 
 export interface AuthContextType {
   user: User | null;
-  profile: UserProfile | null;
+  profile: Profile | null;
   loading: boolean;
 }
 
@@ -19,7 +19,7 @@ export const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export default function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
-  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -40,7 +40,7 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
       const unsubscribeProfile = onSnapshot(profileRef, 
         (docSnap) => {
           if (docSnap.exists()) {
-            setProfile({ id: docSnap.id, ...docSnap.data() } as UserProfile);
+            setProfile({ id: docSnap.id, ...docSnap.data() } as Profile);
           } else {
             // Profile might not be created yet on first login
             setProfile(null);

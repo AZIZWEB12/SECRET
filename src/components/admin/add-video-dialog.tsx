@@ -28,9 +28,14 @@ export function AddVideoDialog({ isOpen, onOpenChange }: AddVideoDialogProps) {
     setIsSaving(true);
     
     try {
-      const collectionRef = collection(db, 'videos');
+      const collectionRef = collection(db, 'documents');
       const newDocData = {
-        ...values,
+        title: values.title,
+        category: values.category,
+        access_type: values.access_type,
+        url: values.url,
+        thumbnailUrl: values.thumbnailUrl,
+        type: 'video',
         createdAt: serverTimestamp(),
       };
 
@@ -45,7 +50,7 @@ export function AddVideoDialog({ isOpen, onOpenChange }: AddVideoDialogProps) {
        errorEmitter.emit(
         'permission-error',
         new FirestorePermissionError({
-          path: 'videos',
+          path: 'documents',
           operation: 'create',
         })
       );
@@ -85,5 +90,3 @@ export function AddVideoDialog({ isOpen, onOpenChange }: AddVideoDialogProps) {
     </Dialog>
   );
 }
-
-    

@@ -51,7 +51,7 @@ export default function QuizPage() {
     }, []);
 
     const handleQuizClick = (quiz: Quiz) => {
-        if (quiz.access_type === 'premium' && !profile?.isPremium) {
+        if (quiz.access_type === 'premium' && profile?.subscription_type !== 'premium') {
             router.push('/premium');
         } else {
             router.push(`/quiz/${quiz.id}`);
@@ -102,7 +102,7 @@ export default function QuizPage() {
             <div className="mt-8 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                 {quizzes.length > 0 && quizzes.map((quiz) => {
                     const isPremium = quiz.access_type === 'premium';
-                    const hasAccess = !isPremium || profile?.isPremium;
+                    const hasAccess = !isPremium || profile?.subscription_type === 'premium';
                     const isMock = quiz.isMockExam;
 
                     return (

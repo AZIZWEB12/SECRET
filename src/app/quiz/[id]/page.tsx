@@ -4,7 +4,7 @@ import { AppLayout } from '@/components/layout/app-layout';
 import { db } from '@/lib/firebase';
 import { Quiz, QuizAttempt, QuizQuestionData } from '@/lib/types';
 import { useAuth } from '@/hooks/use-auth';
-import { doc, getDoc, collection, addDoc, serverTimestamp, setDoc } from 'firebase/firestore';
+import { doc, getDoc, collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -19,6 +19,7 @@ import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 import Link from 'next/link';
 import MathText from '@/components/math-text';
+import { useToast } from '@/hooks/use-toast';
 
 // Check if two arrays are equal regardless of order
 const arraysAreEqual = (arr1: string[], arr2: string[]) => {
@@ -32,6 +33,7 @@ export default function TakeQuizPage() {
   const { id: quizId } = useParams();
   const { user, profile, loading: authLoading } = useAuth();
   const router = useRouter();
+  const { toast } = useToast();
 
   const [quiz, setQuiz] = useState<Quiz | null>(null);
   const [loading, setLoading] = useState(true);
@@ -78,7 +80,7 @@ export default function TakeQuizPage() {
     try {
         const attemptData: Omit<QuizAttempt, 'id'> = {
             userId: user.uid,
-            quizId: quiz.id,
+            quizId: quiz.id as string,
             quizTitle: quiz.title,
             totalQuestions: quiz.questions.length,
             correctCount: correctAnswersCount,
@@ -103,7 +105,7 @@ export default function TakeQuizPage() {
     
     setQuizFinished(true);
     setIsSubmitting(false);
-  }, [quiz, user, userAnswers, isSubmitting]);
+  }, [quiz, user, userAnswers, isSubmitting, quizId, toast]);
 
 
   useEffect(() => {
@@ -207,7 +209,7 @@ export default function TakeQuizPage() {
   }
 
   // Check premium access after both quiz and profile have loaded
-  if (quiz.access_type === 'premium' && !profile?.isPremium) {
+  if (quiz.access_type === 'premium' && profile?.subscription_type !== 'premium') {
      return (
       <AppLayout>
         <Alert variant="destructive" className="max-w-md mx-auto text-center">

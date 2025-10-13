@@ -30,7 +30,7 @@ export default function AdminFormationsPage() {
                     <TableRow>
                         <TableHead>Titre</TableHead>
                         <TableHead>Segment</TableHead>
-                        <TableHead>Premium</TableHead>
+                        <TableHead>Accès</TableHead>
                         <TableHead>Date de création</TableHead>
                         <TableHead>Actions</TableHead>
                     </TableRow>

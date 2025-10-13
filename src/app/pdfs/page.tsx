@@ -6,32 +6,33 @@ import { FileText, Star, Download } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import { PDF } from '@/lib/types';
+import { Document as DocumentType } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertTriangle } from 'lucide-react';
 import { FirestorePermissionError } from '@/firebase/errors';
 import { errorEmitter } from '@/firebase/error-emitter';
-import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/use-auth';
 import { Badge } from '@/components/ui/badge';
 import { useRouter } from 'next/navigation';
 
 export default function PdfsPage() {
-    const [pdfs, setPdfs] = useState<PDF[]>([]);
+    const [pdfs, setPdfs] = useState<DocumentType[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const { profile } = useAuth();
     const router = useRouter();
 
     useEffect(() => {
-        const pdfsCollectionRef = collection(db, 'pdfs');
-        const q = query(pdfsCollectionRef, orderBy('createdAt', 'desc'));
+        const documentsCollectionRef = collection(db, 'documents');
+        const q = query(documentsCollectionRef, orderBy('createdAt', 'desc'));
 
         const unsubscribe = onSnapshot(q,
             (snapshot) => {
-                const pdfList = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as PDF));
+                const pdfList = snapshot.docs
+                    .map(doc => ({ id: doc.id, ...doc.data() } as DocumentType))
+                    .filter(doc => doc.type === 'pdf');
                 setPdfs(pdfList);
                 setLoading(false);
                 setError(null);
@@ -40,7 +41,7 @@ export default function PdfsPage() {
                 setLoading(false);
                 setError("Erreur de chargement des PDF. Vérifiez vos permissions.");
                 const permissionError = new FirestorePermissionError({
-                    path: 'pdfs',
+                    path: 'documents',
                     operation: 'list',
                 });
                 errorEmitter.emit('permission-error', permissionError);
@@ -50,14 +51,14 @@ export default function PdfsPage() {
         return () => unsubscribe();
     }, []);
 
-    const canAccess = (pdf: PDF) => {
-        if (!pdf.premiumOnly) return true;
-        return profile?.isPremium;
+    const canAccess = (pdf: DocumentType) => {
+        if (pdf.access_type === 'gratuit') return true;
+        return profile?.subscription_type === 'premium';
     };
     
-    const handleAccess = (pdf: PDF) => {
+    const handleAccess = (pdf: DocumentType) => {
         if (canAccess(pdf)) {
-             window.open(pdf.fileUrl, '_blank');
+             window.open(pdf.url, '_blank');
         } else {
             router.push('/premium');
         }
@@ -101,10 +102,10 @@ export default function PdfsPage() {
                             <CardHeader className="flex-grow">
                                 <div className="flex justify-between items-center mb-2">
                                     <FileText className="h-8 w-8 text-primary" />
-                                    {pdf.premiumOnly && <Badge variant="secondary" className="bg-orange-100 text-orange-800 border-orange-200"><Star className="mr-1 h-3 w-3"/>Premium</Badge>}
+                                    {pdf.access_type === 'premium' && <Badge variant="secondary" className="bg-orange-100 text-orange-800 border-orange-200"><Star className="mr-1 h-3 w-3"/>Premium</Badge>}
                                 </div>
                                 <CardTitle className="leading-tight">{pdf.title}</CardTitle>
-                                <CardDescription>Segment: {pdf.segment}</CardDescription>
+                                <CardDescription>Catégorie: {pdf.category}</CardDescription>
                             </CardHeader>
                             <CardFooter>
                                 <Button className="w-full" onClick={() => handleAccess(pdf)}>
@@ -134,5 +135,3 @@ export default function PdfsPage() {
         </AppLayout>
     );
 }
-
-    

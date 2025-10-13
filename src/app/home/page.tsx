@@ -139,8 +139,8 @@ export default function HomePage() {
                     Prêt à relever de nouveaux défis ? Voici vos outils pour réussir.
                 </p>
             </div>
-             <Badge variant={profile?.isPremium ? "secondary" : "outline"} className="text-sm">
-                {profile?.isPremium ? <><Star className="mr-2 h-4 w-4 text-yellow-500" /> Premium</> : 'Gratuit'}
+             <Badge variant={profile?.subscription_type === 'premium' ? "secondary" : "outline"} className="text-sm">
+                {profile?.subscription_type === 'premium' ? <><Star className="mr-2 h-4 w-4 text-yellow-500" /> Premium</> : 'Gratuit'}
              </Badge>
         </div>
       </div>

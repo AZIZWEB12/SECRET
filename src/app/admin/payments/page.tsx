@@ -8,7 +8,7 @@ import { CreditCard, Check, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { collection, onSnapshot, query, where, orderBy, doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import { Payment } from '@/lib/types';
+import { Transaction } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertTriangle } from 'lucide-react';
@@ -20,27 +20,27 @@ import { fr } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
 
 export default function AdminPaymentsPage() {
-    const [payments, setPayments] = useState<Payment[]>([]);
+    const [transactions, setTransactions] = useState<Transaction[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const { toast } = useToast();
 
     useEffect(() => {
-        const paymentsCollectionRef = collection(db, 'payments');
-        const q = query(paymentsCollectionRef, orderBy('createdAt', 'desc'));
+        const transactionsCollectionRef = collection(db, 'transactions');
+        const q = query(transactionsCollectionRef, orderBy('createdAt', 'desc'));
 
         const unsubscribe = onSnapshot(q,
             (snapshot) => {
-                const paymentList = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Payment));
-                setPayments(paymentList);
+                const transactionList = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Transaction));
+                setTransactions(transactionList);
                 setLoading(false);
                 setError(null);
             },
             (err) => {
                 setLoading(false);
-                setError("Erreur de chargement des paiements. Vérifiez vos permissions.");
+                setError("Erreur de chargement des transactions. Vérifiez vos permissions.");
                 const permissionError = new FirestorePermissionError({
-                    path: 'payments',
+                    path: 'transactions',
                     operation: 'list',
                 });
                 errorEmitter.emit('permission-error', permissionError);
@@ -50,10 +50,10 @@ export default function AdminPaymentsPage() {
         return () => unsubscribe();
     }, []);
     
-    const handlePaymentStatusUpdate = async (paymentId: string, newStatus: 'approved' | 'rejected') => {
-        const paymentRef = doc(db, 'payments', paymentId);
-        const payment = payments.find(p => p.id === paymentId);
-        if (!payment) return;
+    const handleTransactionStatusUpdate = async (transactionId: string, newStatus: 'approved' | 'rejected') => {
+        const transactionRef = doc(db, 'transactions', transactionId);
+        const transaction = transactions.find(p => p.id === transactionId);
+        if (!transaction) return;
 
         const updateData: { status: 'approved' | 'rejected', approvedAt?: any } = { status: newStatus };
         if (newStatus === 'approved') {
@@ -61,32 +61,31 @@ export default function AdminPaymentsPage() {
         }
 
         try {
-            await updateDoc(paymentRef, updateData);
+            await updateDoc(transactionRef, updateData);
             
-            // If approved, also update user's premium status
             if (newStatus === 'approved') {
-                const userProfileRef = doc(db, 'profiles', payment.userId);
+                const userProfileRef = doc(db, 'profiles', transaction.userId);
                 await updateDoc(userProfileRef, { 
-                    isPremium: true,
-                    premiumActivatedAt: serverTimestamp() 
+                    subscription_type: 'premium',
+                    subscriptionActivatedAt: serverTimestamp() 
                 });
             }
 
             toast({
                 title: "Succès",
-                description: `Le statut du paiement a été mis à jour.`
+                description: `Le statut de la transaction a été mis à jour.`
             });
         } catch (err) {
              const permissionError = new FirestorePermissionError({
-                path: paymentRef.path,
+                path: transactionRef.path,
                 operation: 'update',
                 requestResourceData: updateData,
             });
             errorEmitter.emit('permission-error', permissionError);
 
              if (newStatus === 'approved') {
-                 const userProfileRef = doc(db, 'profiles', payment.userId);
-                 const userProfileUpdateData = { isPremium: true, premiumActivatedAt: serverTimestamp() };
+                 const userProfileRef = doc(db, 'profiles', transaction.userId);
+                 const userProfileUpdateData = { subscription_type: 'premium', subscriptionActivatedAt: serverTimestamp() };
                  errorEmitter.emit('permission-error', new FirestorePermissionError({
                     path: userProfileRef.path,
                     operation: 'update',
@@ -107,7 +106,7 @@ export default function AdminPaymentsPage() {
     return (
         <AppLayout>
             <div className="mb-8">
-                <h1 className="text-3xl font-bold tracking-tight font-headline">Gérer les Paiements</h1>
+                <h1 className="text-3xl font-bold tracking-tight font-headline">Gérer les Transactions</h1>
                 <p className="text-muted-foreground">Validez ou rejetez les paiements en attente.</p>
             </div>
             
@@ -142,7 +141,7 @@ export default function AdminPaymentsPage() {
                         </TableBody>
                     </Table>
                 </Card>
-            ) : payments.length > 0 ? (
+            ) : transactions.length > 0 ? (
                 <Card>
                     <Table>
                         <TableHeader>
@@ -154,20 +153,20 @@ export default function AdminPaymentsPage() {
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                             {payments.map(payment => (
-                                <TableRow key={payment.id}>
-                                    <TableCell className="font-mono text-xs">{payment.userId}</TableCell>
-                                    <TableCell>{format(payment.createdAt.toDate(), 'dd MMM yyyy, HH:mm', { locale: fr })}</TableCell>
+                             {transactions.map(transaction => (
+                                <TableRow key={transaction.id}>
+                                    <TableCell className="font-mono text-xs">{transaction.userId}</TableCell>
+                                    <TableCell>{format(transaction.createdAt.toDate(), 'dd MMM yyyy, HH:mm', { locale: fr })}</TableCell>
                                     <TableCell>
-                                        <Badge variant={getStatusVariant(payment.status)}>{payment.status}</Badge>
+                                        <Badge variant={getStatusVariant(transaction.status)}>{transaction.status}</Badge>
                                     </TableCell>
                                     <TableCell className="text-right">
-                                        {payment.status === 'pending' && (
+                                        {transaction.status === 'pending' && (
                                             <div className="flex gap-2 justify-end">
-                                                <Button size="icon" variant="outline" className="h-8 w-8 bg-green-50 hover:bg-green-100 text-green-700" onClick={() => handlePaymentStatusUpdate(payment.id, 'approved')}>
+                                                <Button size="icon" variant="outline" className="h-8 w-8 bg-green-50 hover:bg-green-100 text-green-700" onClick={() => handleTransactionStatusUpdate(transaction.id, 'approved')}>
                                                     <Check className="h-4 w-4" />
                                                 </Button>
-                                                <Button size="icon" variant="outline" className="h-8 w-8 bg-red-50 hover:bg-red-100 text-red-700" onClick={() => handlePaymentStatusUpdate(payment.id, 'rejected')}>
+                                                <Button size="icon" variant="outline" className="h-8 w-8 bg-red-50 hover:bg-red-100 text-red-700" onClick={() => handleTransactionStatusUpdate(transaction.id, 'rejected')}>
                                                     <X className="h-4 w-4" />
                                                 </Button>
                                             </div>
@@ -184,9 +183,9 @@ export default function AdminPaymentsPage() {
                         <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-secondary">
                             <CreditCard className="h-8 w-8 text-muted-foreground" />
                         </div>
-                        <CardTitle>Aucun paiement enregistré</CardTitle>
+                        <CardTitle>Aucune transaction enregistrée</CardTitle>
                         <CardDescription>
-                            Il n'y a aucun paiement en attente ou traité pour le moment.
+                            Il n'y a aucune transaction en attente ou traitée pour le moment.
                         </CardDescription>
                     </CardHeader>
                 </Card>

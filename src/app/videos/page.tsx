@@ -6,13 +6,12 @@ import { Film, Star, PlayCircle } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import { Video } from '@/lib/types';
+import { Document as DocumentType } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertTriangle } from 'lucide-react';
 import { FirestorePermissionError } from '@/firebase/errors';
 import { errorEmitter } from '@/firebase/error-emitter';
-import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/use-auth';
 import { Badge } from '@/components/ui/badge';
@@ -21,19 +20,21 @@ import { CardDescription } from '@/components/ui/card';
 import { useRouter } from 'next/navigation';
 
 export default function VideosPage() {
-    const [videos, setVideos] = useState<Video[]>([]);
+    const [videos, setVideos] = useState<DocumentType[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const { profile } = useAuth();
     const router = useRouter();
 
     useEffect(() => {
-        const videosCollectionRef = collection(db, 'videos');
-        const q = query(videosCollectionRef, orderBy('createdAt', 'desc'));
+        const documentsCollectionRef = collection(db, 'documents');
+        const q = query(documentsCollectionRef, orderBy('createdAt', 'desc'));
 
         const unsubscribe = onSnapshot(q,
             (snapshot) => {
-                const videoList = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Video));
+                const videoList = snapshot.docs
+                    .map(doc => ({ id: doc.id, ...doc.data() } as DocumentType))
+                    .filter(doc => doc.type === 'video');
                 setVideos(videoList);
                 setLoading(false);
                 setError(null);
@@ -42,7 +43,7 @@ export default function VideosPage() {
                 setLoading(false);
                 setError("Erreur de chargement des vidéos. Vérifiez vos permissions.");
                 const permissionError = new FirestorePermissionError({
-                    path: 'videos',
+                    path: 'documents',
                     operation: 'list',
                 });
                 errorEmitter.emit('permission-error', permissionError);
@@ -52,14 +53,14 @@ export default function VideosPage() {
         return () => unsubscribe();
     }, []);
 
-    const canAccess = (video: Video) => {
-        if (!video.premiumOnly) return true;
-        return profile?.isPremium;
+    const canAccess = (video: DocumentType) => {
+        if (video.access_type === 'gratuit') return true;
+        return profile?.subscription_type === 'premium';
     };
     
-    const handleAccess = (video: Video) => {
+    const handleAccess = (video: DocumentType) => {
         if (canAccess(video)) {
-             window.open(video.videoUrl, '_blank');
+             window.open(video.url, '_blank');
         } else {
             router.push('/premium');
         }
@@ -101,7 +102,7 @@ export default function VideosPage() {
                         <Card key={video.id} className="flex flex-col overflow-hidden hover:shadow-lg transition-shadow duration-300">
                             <div className="relative aspect-video">
                                 <Image src={video.thumbnailUrl || `https://picsum.photos/seed/${video.id}/400/225`} alt={video.title} fill className="object-cover" />
-                                {video.premiumOnly && <Badge variant="secondary" className="absolute top-2 right-2 bg-orange-100 text-orange-800 border-orange-200"><Star className="mr-1 h-3 w-3"/>Premium</Badge>}
+                                {video.access_type === 'premium' && <Badge variant="secondary" className="absolute top-2 right-2 bg-orange-100 text-orange-800 border-orange-200"><Star className="mr-1 h-3 w-3"/>Premium</Badge>}
                             </div>
                             <CardHeader className="flex-grow">
                                 <CardTitle className="leading-tight">{video.title}</CardTitle>
@@ -134,5 +135,3 @@ export default function VideosPage() {
         </AppLayout>
     );
 }
-
-    

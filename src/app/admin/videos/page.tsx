@@ -8,7 +8,7 @@ import { Video, PlusCircle, Trash2, Edit, Star } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { collection, onSnapshot, query, orderBy, deleteDoc, doc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import { Video as VideoType } from '@/lib/types';
+import { Document as DocumentType } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertTriangle } from 'lucide-react';
@@ -21,18 +21,20 @@ import { AddVideoDialog } from '@/components/admin/add-video-dialog';
 import Image from 'next/image';
 
 export default function AdminVideosPage() {
-    const [videos, setVideos] = useState<VideoType[]>([]);
+    const [videos, setVideos] = useState<DocumentType[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
 
     useEffect(() => {
-        const videosCollectionRef = collection(db, 'videos');
-        const q = query(videosCollectionRef, orderBy('createdAt', 'desc'));
+        const documentsCollectionRef = collection(db, 'documents');
+        const q = query(documentsCollectionRef, orderBy('createdAt', 'desc'));
 
         const unsubscribe = onSnapshot(q,
             (snapshot) => {
-                const videoList = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as VideoType));
+                const videoList = snapshot.docs
+                    .map(doc => ({ id: doc.id, ...doc.data() } as DocumentType))
+                    .filter(doc => doc.type === 'video');
                 setVideos(videoList);
                 setLoading(false);
                 setError(null);
@@ -41,7 +43,7 @@ export default function AdminVideosPage() {
                 setLoading(false);
                 setError("Erreur de chargement des vidéos.");
                 const permissionError = new FirestorePermissionError({
-                    path: 'videos',
+                    path: 'documents',
                     operation: 'list',
                 });
                 errorEmitter.emit('permission-error', permissionError);
@@ -55,7 +57,7 @@ export default function AdminVideosPage() {
         if (!confirm("Êtes-vous sûr de vouloir supprimer cette vidéo ?")) {
             return;
         }
-        const docRef = doc(db, 'videos', id);
+        const docRef = doc(db, 'documents', id);
         deleteDoc(docRef).catch(err => {
              errorEmitter.emit('permission-error', new FirestorePermissionError({
                 path: docRef.path,
@@ -92,7 +94,7 @@ export default function AdminVideosPage() {
                 <TableHeader>
                     <TableRow>
                         <TableHead>Titre</TableHead>
-                        <TableHead>Segment</TableHead>
+                        <TableHead>Catégorie</TableHead>
                         <TableHead>Accès</TableHead>
                         <TableHead>Créé le</TableHead>
                         <TableHead>Actions</TableHead>
@@ -118,7 +120,7 @@ export default function AdminVideosPage() {
                     <TableRow>
                         <TableHead>Miniature</TableHead>
                         <TableHead>Titre</TableHead>
-                        <TableHead>Segment</TableHead>
+                        <TableHead>Catégorie</TableHead>
                         <TableHead>Accès</TableHead>
                         <TableHead>Créé le</TableHead>
                         <TableHead className="text-right">Actions</TableHead>
@@ -131,9 +133,9 @@ export default function AdminVideosPage() {
                                 <Image src={video.thumbnailUrl || `https://picsum.photos/seed/${video.id}/120/68`} alt={video.title} width={120} height={68} className="rounded-md object-cover" />
                              </TableCell>
                             <TableCell className="font-medium">{video.title}</TableCell>
-                            <TableCell><Badge variant="outline">{video.segment}</Badge></TableCell>
+                            <TableCell><Badge variant="outline">{video.category}</Badge></TableCell>
                              <TableCell>
-                                {video.premiumOnly ? (
+                                {video.access_type === 'premium' ? (
                                     <Badge variant="default"><Star className="mr-1 h-3 w-3"/>Premium</Badge>
                                 ) : (
                                     <Badge variant="secondary">Gratuit</Badge>
@@ -169,5 +171,3 @@ export default function AdminVideosPage() {
     </AppLayout>
   );
 }
-
-    

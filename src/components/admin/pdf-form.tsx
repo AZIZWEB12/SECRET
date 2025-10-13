@@ -17,12 +17,13 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Loader2, Save } from 'lucide-react';
 import { Switch } from '../ui/switch';
+import { QuizAccessType } from '@/lib/types';
 
 const pdfFormSchema = z.object({
   title: z.string().min(3, { message: 'Le titre doit contenir au moins 3 caractères.' }),
-  segment: z.enum(['direct', 'professionnel'], { required_error: 'Veuillez choisir un segment.' }),
-  premiumOnly: z.boolean().default(false),
-  fileUrl: z.string().url({ message: "Veuillez entrer une URL valide."}),
+  category: z.string().min(2, { message: 'La catégorie est requise.'}),
+  access_type: z.enum(['gratuit', 'premium'], { required_error: "Veuillez choisir un type d'accès." }),
+  url: z.string().url({ message: "Veuillez entrer une URL valide."}),
 });
 
 export type PdfFormValues = z.infer<typeof pdfFormSchema>;
@@ -39,8 +40,9 @@ export function PdfForm({ onSubmit, onCancel, isSaving, initialValues }: PdfForm
     resolver: zodResolver(pdfFormSchema),
     defaultValues: initialValues || {
       title: '',
-      premiumOnly: false,
-      fileUrl: '',
+      category: '',
+      access_type: 'gratuit',
+      url: '',
     },
   });
 
@@ -63,7 +65,7 @@ export function PdfForm({ onSubmit, onCancel, isSaving, initialValues }: PdfForm
         
         <FormField
           control={form.control}
-          name="fileUrl"
+          name="url"
           render={({ field }) => (
             <FormItem>
               <FormLabel>URL du fichier PDF</FormLabel>
@@ -78,21 +80,13 @@ export function PdfForm({ onSubmit, onCancel, isSaving, initialValues }: PdfForm
         
         <FormField
             control={form.control}
-            name="segment"
+            name="category"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Segment</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Choisir le segment" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    <SelectItem value="direct">Concours Direct</SelectItem>
-                    <SelectItem value="professionnel">Concours Professionnel</SelectItem>
-                  </SelectContent>
-                </Select>
+                <FormLabel>Catégorie</FormLabel>
+                <FormControl>
+                    <Input placeholder="Ex: Culture générale" {...field} />
+                </FormControl>
                 <FormMessage />
               </FormItem>
             )}
@@ -100,22 +94,23 @@ export function PdfForm({ onSubmit, onCancel, isSaving, initialValues }: PdfForm
        
         <FormField
           control={form.control}
-          name="premiumOnly"
+          name="access_type"
           render={({ field }) => (
-            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
-              <div className="space-y-0.5">
-                <FormLabel>Accès Premium</FormLabel>
-                <FormDescription>
-                  Ce PDF est-il réservé aux membres premium ?
-                </FormDescription>
-              </div>
-              <FormControl>
-                <Switch
-                  checked={field.value}
-                  onCheckedChange={field.onChange}
-                />
-              </FormControl>
-            </FormItem>
+            <FormItem>
+                <FormLabel>Type d'accès</FormLabel>
+                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value="gratuit">Gratuit</SelectItem>
+                    <SelectItem value="premium">Premium</SelectItem>
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
           )}
         />
        
@@ -130,5 +125,3 @@ export function PdfForm({ onSubmit, onCancel, isSaving, initialValues }: PdfForm
     </Form>
   );
 }
-
-    

@@ -8,7 +8,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { collection, onSnapshot, query, where, limit, orderBy } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import { Profile, Payment } from "@/lib/types";
+import { Profile } from "@/lib/types";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -24,11 +24,11 @@ const adminLinks = [
     { href: "/admin/pdfs", title: "Gérer les PDFs", icon: FileText },
     { href: "/admin/videos", title: "Gérer les Vidéos", icon: Video },
     { href: "/admin/formations", title: "Gérer les Formations", icon: GraduationCap },
-    { href: "/admin/payments", title: "Gérer les Paiements", icon: CreditCard },
+    { href: "/admin/payments", title: "Gérer les Transactions", icon: CreditCard },
 ];
 
 export default function AdminDashboardPage() {
-    const [stats, setStats] = useState({ totalUsers: 0, premiumUsers: 0, pendingPayments: 0 });
+    const [stats, setStats] = useState({ totalUsers: 0, premiumUsers: 0, pendingTransactions: 0 });
     const [recentUsers, setRecentUsers] = useState<Profile[]>([]);
     const [loadingStats, setLoadingStats] = useState(true);
     const [loadingUsers, setLoadingUsers] = useState(true);
@@ -37,35 +37,35 @@ export default function AdminDashboardPage() {
     useEffect(() => {
         // --- Fetch Stats ---
         const profilesRef = collection(db, 'profiles');
-        const paymentsRef = collection(db, 'payments');
+        const transactionsRef = collection(db, 'transactions');
 
         const unsubStats = onSnapshot(profilesRef, 
             (profileSnapshot) => {
                 const totalUsers = profileSnapshot.size;
-                const premiumUsers = profileSnapshot.docs.filter(doc => doc.data().isPremium).length;
+                const premiumUsers = profileSnapshot.docs.filter(doc => doc.data().subscription_type === 'premium').length;
                 
-                const q = query(paymentsRef, where("status", "==", "pending"));
-                const unsubPayments = onSnapshot(q, 
-                    (paymentSnapshot) => {
+                const q = query(transactionsRef, where("status", "==", "pending"));
+                const unsubTransactions = onSnapshot(q, 
+                    (transactionSnapshot) => {
                         setStats({
                             totalUsers,
                             premiumUsers,
-                            pendingPayments: paymentSnapshot.size,
+                            pendingTransactions: transactionSnapshot.size,
                         });
                         setLoadingStats(false);
                         setError(null);
                     },
                     (err) => {
-                        setError("Erreur de lecture des paiements.");
+                        setError("Erreur de lecture des transactions.");
                         setLoadingStats(false);
                         const permissionError = new FirestorePermissionError({
-                            path: 'payments', 
+                            path: 'transactions', 
                             operation: 'list',
                         });
                         errorEmitter.emit('permission-error', permissionError);
                     }
                 );
-                return () => unsubPayments();
+                return () => unsubTransactions();
             }, 
             (err) => {
                 setError("Erreur de lecture des profils.");
@@ -138,11 +138,11 @@ export default function AdminDashboardPage() {
                 </Card>
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Paiements en attente</CardTitle>
+                        <CardTitle className="text-sm font-medium">Transactions en attente</CardTitle>
                         <CreditCard className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                        {loadingStats ? <Skeleton className="h-8 w-1/4" /> : <div className="text-2xl font-bold">{stats.pendingPayments}</div>}
+                        {loadingStats ? <Skeleton className="h-8 w-1/4" /> : <div className="text-2xl font-bold">{stats.pendingTransactions}</div>}
                         <p className="text-xs text-muted-foreground">Validations requises</p>
                     </CardContent>
                 </Card>
@@ -157,7 +157,7 @@ export default function AdminDashboardPage() {
                                 <TableRow>
                                     <TableHead>Nom</TableHead>
                                     <TableHead>Inscription</TableHead>
-                                    <TableHead>Statut</TableHead>
+                                    <TableHead>Abonnement</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -175,8 +175,8 @@ export default function AdminDashboardPage() {
                                             {user.createdAt ? formatDistanceToNow(user.createdAt.toDate(), { addSuffix: true, locale: fr }) : '-'}
                                         </TableCell>
                                         <TableCell>
-                                             <Badge variant={user.isPremium ? 'default' : 'secondary'}>
-                                                {user.isPremium ? 'Premium' : 'Gratuit'}
+                                             <Badge variant={user.subscription_type === 'premium' ? 'default' : 'secondary'}>
+                                                {user.subscription_type}
                                             </Badge>
                                         </TableCell>
                                     </TableRow>

@@ -50,7 +50,7 @@ export default function FormationsPage() {
 
     const canAccess = (formation: Formation) => {
         if (!formation.premiumOnly) return true;
-        return profile?.isPremium;
+        return profile?.subscription_type === 'premium';
     };
 
     return (

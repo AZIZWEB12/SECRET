@@ -28,9 +28,13 @@ export function AddPdfDialog({ isOpen, onOpenChange }: AddPdfDialogProps) {
     setIsSaving(true);
     
     try {
-      const collectionRef = collection(db, 'pdfs');
+      const collectionRef = collection(db, 'documents');
       const newDocData = {
-        ...values,
+        title: values.title,
+        category: values.category,
+        access_type: values.access_type,
+        url: values.url,
+        type: 'pdf',
         createdAt: serverTimestamp(),
       };
 
@@ -45,7 +49,7 @@ export function AddPdfDialog({ isOpen, onOpenChange }: AddPdfDialogProps) {
        errorEmitter.emit(
         'permission-error',
         new FirestorePermissionError({
-          path: 'pdfs',
+          path: 'documents',
           operation: 'create',
         })
       );
@@ -85,5 +89,3 @@ export function AddPdfDialog({ isOpen, onOpenChange }: AddPdfDialogProps) {
     </Dialog>
   );
 }
-
-    

@@ -57,7 +57,7 @@ export function SignupForm() {
     setLoading(true);
     
     try {
-        const email = `${values.phone}@concours-master-prep.com`;
+        const email = `${values.phone}@gagnetonconcours.app`;
         const userCredential = await createUserWithEmailAndPassword(auth, email, values.password);
         const user = userCredential.user;
         const displayName = `${values.firstName} ${values.lastName}`;
@@ -79,8 +79,8 @@ export function SignupForm() {
             phone: values.phone,
             segment: values.segment,
             role: isFirstUser ? 'admin' : 'user',
-            isPremium: isFirstUser, 
-            premiumUntil: null,
+            subscription_type: isFirstUser ? 'premium' : 'gratuit', 
+            subscriptionActivatedAt: isFirstUser ? serverTimestamp() : null,
             createdAt: serverTimestamp(),
             email: email,
         };

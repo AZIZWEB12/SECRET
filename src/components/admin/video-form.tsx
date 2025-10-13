@@ -16,13 +16,12 @@ import {
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Loader2, Save } from 'lucide-react';
-import { Switch } from '../ui/switch';
 
 const videoFormSchema = z.object({
   title: z.string().min(3, { message: 'Le titre doit contenir au moins 3 caractères.' }),
-  segment: z.enum(['direct', 'professionnel'], { required_error: 'Veuillez choisir un segment.' }),
-  premiumOnly: z.boolean().default(false),
-  videoUrl: z.string().url({ message: "Veuillez entrer une URL de vidéo valide."}),
+  category: z.string().min(2, { message: "La catégorie est requise."}),
+  access_type: z.enum(['gratuit', 'premium']),
+  url: z.string().url({ message: "Veuillez entrer une URL de vidéo valide."}),
   thumbnailUrl: z.string().url({ message: "Veuillez entrer une URL de miniature valide."}).optional().or(z.literal('')),
 });
 
@@ -51,15 +50,16 @@ export function VideoForm({ onSubmit, onCancel, isSaving, initialValues }: Video
     resolver: zodResolver(videoFormSchema),
     defaultValues: initialValues || {
       title: '',
-      premiumOnly: false,
-      videoUrl: '',
+      category: '',
+      access_type: 'gratuit',
+      url: '',
       thumbnailUrl: '',
     },
   });
 
   const handleUrlChange = (e: React.ChangeEvent<HTMLInputElement>) => {
       const url = e.target.value;
-      form.setValue('videoUrl', url);
+      form.setValue('url', url);
       const thumb = getYouTubeThumbnail(url);
       if(thumb && !form.getValues('thumbnailUrl')){
         form.setValue('thumbnailUrl', thumb);
@@ -85,7 +85,7 @@ export function VideoForm({ onSubmit, onCancel, isSaving, initialValues }: Video
         
         <FormField
           control={form.control}
-          name="videoUrl"
+          name="url"
           render={({ field }) => (
             <FormItem>
               <FormLabel>URL de la vidéo</FormLabel>
@@ -116,21 +116,13 @@ export function VideoForm({ onSubmit, onCancel, isSaving, initialValues }: Video
         
         <FormField
             control={form.control}
-            name="segment"
+            name="category"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Segment</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Choisir le segment" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    <SelectItem value="direct">Concours Direct</SelectItem>
-                    <SelectItem value="professionnel">Concours Professionnel</SelectItem>
-                  </SelectContent>
-                </Select>
+                <FormLabel>Catégorie</FormLabel>
+                <FormControl>
+                    <Input placeholder="Ex: Droit Constitutionnel" {...field} />
+                </FormControl>
                 <FormMessage />
               </FormItem>
             )}
@@ -138,21 +130,22 @@ export function VideoForm({ onSubmit, onCancel, isSaving, initialValues }: Video
        
         <FormField
           control={form.control}
-          name="premiumOnly"
+          name="access_type"
           render={({ field }) => (
-            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
-              <div className="space-y-0.5">
-                <FormLabel>Accès Premium</FormLabel>
-                <FormDescription>
-                  Cette vidéo est-elle réservée aux membres premium ?
-                </FormDescription>
-              </div>
-              <FormControl>
-                <Switch
-                  checked={field.value}
-                  onCheckedChange={field.onChange}
-                />
-              </FormControl>
+            <FormItem>
+                <FormLabel>Type d'accès</FormLabel>
+                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value="gratuit">Gratuit</SelectItem>
+                    <SelectItem value="premium">Premium</SelectItem>
+                  </SelectContent>
+                </Select>
+                <FormMessage />
             </FormItem>
           )}
         />
@@ -168,5 +161,3 @@ export function VideoForm({ onSubmit, onCancel, isSaving, initialValues }: Video
     </Form>
   );
 }
-
-    
