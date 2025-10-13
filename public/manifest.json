@@ -1,19 +1,30 @@
 {
-  "name": "Le Secret Du Concours",
-  "short_name": "Concours",
-  "description": "Plateforme de préparation aux concours du Burkina Faso.",
-  "start_url": "/",
+  "theme_color": "#6C63FF",
+  "background_color": "#F8F9FA",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#6d28d9",
+  "scope": "/",
+  "start_url": "/",
+  "name": "Secret du Concours",
+  "short_name": "SDC",
+  "description": "Votre plateforme N°1 pour la préparation des concours directs et professionnels au Burkina Faso.",
   "icons": [
     {
-      "src": "/logo-192.png",
+      "src": "/logo.png",
       "sizes": "192x192",
       "type": "image/png"
     },
     {
-      "src": "/logo-512.png",
+      "src": "/logo.png",
+      "sizes": "256x256",
+      "type": "image/png"
+    },
+    {
+      "src": "/logo.png",
+      "sizes": "384x384",
+      "type": "image/png"
+    },
+    {
+      "src": "/logo.png",
       "sizes": "512x512",
       "type": "image/png"
     }
