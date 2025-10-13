@@ -25,9 +25,12 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const unsubscribeAuth = onAuthStateChanged(auth, (firebaseUser) => {
       setUser(firebaseUser);
+      // Set loading to false as soon as we know the auth state.
+      // The profile will be loaded in the background.
+      setLoading(false); 
+      
       if (!firebaseUser) {
         setProfile(null);
-        setLoading(false);
       }
     });
 
@@ -42,15 +45,13 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
           if (docSnap.exists()) {
             setProfile({ id: docSnap.id, ...docSnap.data() } as Profile);
           } else {
-            // Profile might not be created yet on first login
+            // This can happen briefly during signup before the profile doc is created.
             setProfile(null);
           }
-          setLoading(false);
         }, 
         (serverError) => {
+          // If we can't read the profile, log the permission error but don't block the UI.
           setProfile(null);
-          setLoading(false);
-
           const permissionError = new FirestorePermissionError({
               path: profileRef.path,
               operation: 'get',
@@ -60,6 +61,9 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
       );
 
       return () => unsubscribeProfile();
+    } else {
+      // Clear profile when user logs out
+      setProfile(null);
     }
   }, [user]);
 
