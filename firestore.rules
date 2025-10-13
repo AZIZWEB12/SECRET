@@ -1,3 +1,4 @@
+
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -11,43 +12,46 @@ service cloud.firestore {
     }
 
     function isAdmin() {
-      return isAuth() && get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.role == 'admin';
+      // Use the 'users' collection as defined in the application structure
+      return isAuth() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
     }
 
-    match /profiles/{userId} {
+    match /users/{userId} {
       allow read, update: if isUser(userId) || isAdmin();
       allow create: if isAuth(); // Allow any authenticated user to create their profile
-      allow list: if isAdmin(); // Only admins can list all profiles
+      allow list: if isAdmin(); // Only admins can list all users
     }
 
     match /quizzes/{quizId} {
       allow read: if isAuth(); // Any authenticated user can read a quiz
-      allow list, write: if isAdmin(); // Only admins can list, create, update, delete quizzes
+      allow create, update, delete, list: if isAdmin(); // Only admins can manage quizzes
     }
 
-    match /quizAttempts/{attemptId} {
-      // Users can create their own attempts, and read them afterwards. Admins can read any attempt.
-      allow create: if isAuth() && request.resource.data.userId == request.auth.uid;
-      allow read, list: if (isAuth() && request.auth.uid == resource.data.userId) || isAdmin();
+    match /documents/{documentId} {
+      allow read: if isAuth();
+      allow create, update, delete, list: if isAdmin();
     }
     
-    match /pdfs/{pdfId} {
-      allow read: if isAuth();
-      allow list, write: if isAdmin();
-    }
-
-    match /videos/{videoId} {
-      allow read: if isAuth();
-      allow list, write: if isAdmin();
+    match /attempts/{attemptId} {
+      // Users can create their own attempts, and read/list them afterwards. Admins can read/list any attempt.
+      allow create: if isAuth() && request.resource.data.userId == request.auth.uid;
+      allow read: if (isAuth() && request.auth.uid == resource.data.userId) || isAdmin();
+      allow list: if isAdmin(); // Only allow admin to list all attempts for now
     }
 
     match /formations/{formationId} {
       allow read: if isAuth();
-      allow list, write: if isAdmin();
+      allow create, update, delete, list: if isAdmin();
     }
 
-    match /payments/{paymentId} {
+    match /transactions/{transactionId} {
       allow read, write: if isAdmin();
+    }
+
+    match /notifications/{notificationId} {
+      allow read, update: if isUser(resource.data.userId);
+      allow create, delete: if isAdmin() || isUser(request.resource.data.userId); // Admins can create notifications, users can create their own (e.g. for reminders) and delete them.
+      allow list: if isUser(request.query.userId); // A user can only list their own notifications
     }
   }
 }
