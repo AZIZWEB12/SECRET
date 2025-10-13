@@ -531,7 +531,7 @@ export default function QuizAdminPanel() {
     },
   });
   
-  const { reset } = formMethods;
+  const { reset, getValues } = formMethods;
 
   const fetchQuizzes = useCallback(async () => {
     setIsLoading(true);
@@ -660,7 +660,7 @@ export default function QuizAdminPanel() {
       const result = await res.json();
       const { quiz } = result;
 
-      const currentValues = formMethods.getValues();
+      const currentValues = getValues();
       const existingQuestions = currentValues.questions || [];
 
       if (mode === 'add' && existingQuestions.length > 0) {
@@ -805,7 +805,7 @@ export default function QuizAdminPanel() {
       onOpenChange={setIsAiGeneratorOpen}
       onGenerate={handleGenerateQuiz}
       isGenerating={isGenerating}
-      existingQuestionsCount={formMethods.getValues().questions?.length || 0}
+      existingQuestionsCount={getValues().questions?.length || 0}
     />
     </>
   );
