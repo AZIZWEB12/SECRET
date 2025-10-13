@@ -19,7 +19,7 @@ import { useState } from "react"
 import { Eye, EyeOff, Loader2 } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth"
-import { doc, setDoc, serverTimestamp, getDocs, collection, query, limit } from "firebase/firestore"
+import { doc, setDoc, serverTimestamp } from "firebase/firestore"
 import { auth, db } from "@/lib/firebase"
 import { errorEmitter } from "@/firebase/error-emitter"
 import { FirestorePermissionError } from "@/firebase/errors"
@@ -57,12 +57,12 @@ export function SignupForm() {
         
         await updateProfile(user, { displayName: values.fullName });
         
-        // Default to 'user' and 'gratuit'. The admin role can be assigned manually in Firestore for security.
+        // Default to 'user' and 'gratuit'. The admin role should be assigned manually in Firestore for security.
         const profileData = {
             displayName: values.fullName,
             phone: values.phone,
             competitionType: values.competitionType,
-            role: 'user',
+            role: 'user', // Always default to 'user'
             subscription_type: 'gratuit',
             createdAt: serverTimestamp(),
             email: email,
@@ -70,6 +70,7 @@ export function SignupForm() {
 
         const profileDocRef = doc(db, "users", user.uid);
         
+        // This is the critical part that was failing silently.
         await setDoc(profileDocRef, profileData);
 
         toast({
@@ -82,18 +83,8 @@ export function SignupForm() {
         let description = "Une erreur inconnue est survenue.";
         if (error.code === 'auth/email-already-in-use') {
             description = "Ce numéro de téléphone est déjà utilisé.";
-            errorEmitter.emit('permission-error', new FirestorePermissionError({
-                path: `users/${auth.currentUser?.uid || 'unknown_user'}`,
-                operation: 'create',
-                requestResourceData: { phone: values.phone, competitionType: values.competitionType, message: "Tentative d'écraser un profil existant ou de créer un doublon." }
-             }));
-        } else if (error.code === 'permission-denied') {
-            description = "Permission refusée. La création du profil a échoué.";
-             errorEmitter.emit('permission-error', new FirestorePermissionError({
-                path: `users/${auth.currentUser?.uid || 'unknown_user'}`,
-                operation: 'create',
-                requestResourceData: { phone: values.phone, competitionType: values.competitionType }
-             }));
+        } else if (error.code === 'permission-denied' || error instanceof FirestorePermissionError) {
+            description = "Permission refusée. La création du profil a échoué. Veuillez vérifier les règles de sécurité Firestore.";
         }
          
         toast({
@@ -103,6 +94,14 @@ export function SignupForm() {
         });
         console.error("Signup error:", error);
 
+        // Emit a specific error for better debugging in development
+        if (!(error instanceof FirestorePermissionError)) {
+          errorEmitter.emit('permission-error', new FirestorePermissionError({
+            path: `users/${auth.currentUser?.uid || 'new_user'}`,
+            operation: 'create',
+            requestResourceData: { phone: values.phone, competitionType: values.competitionType, message: "Échec de la création du document utilisateur dans Firestore." }
+          }));
+        }
     } finally {
         setLoading(false);
     }
