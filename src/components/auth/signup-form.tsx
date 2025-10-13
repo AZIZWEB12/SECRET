@@ -25,7 +25,7 @@ import { errorEmitter } from "@/firebase/error-emitter"
 import { FirestorePermissionError } from "@/firebase/errors"
 
 const formSchema = z.object({
-  displayName: z.string().min(3, { message: "Le nom complet doit contenir au moins 3 caractères." }),
+  fullName: z.string().min(3, { message: "Le nom complet doit contenir au moins 3 caractères." }),
   phone: z.string().min(8, { message: "Veuillez entrer un numéro de téléphone valide." }),
   password: z.string().min(6, { message: "Le mot de passe doit contenir au moins 6 caractères."}),
   competitionType: z.enum(["direct", "professionnel"], { required_error: "Veuillez choisir un type de concours." }),
@@ -40,7 +40,7 @@ export function SignupForm() {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      displayName: "",
+      fullName: "",
       phone: "+226",
       password: "",
       competitionType: undefined,
@@ -55,25 +55,15 @@ export function SignupForm() {
         const userCredential = await createUserWithEmailAndPassword(auth, email, values.password);
         const user = userCredential.user;
         
-        await updateProfile(user, { displayName: values.displayName });
+        await updateProfile(user, { displayName: values.fullName });
         
-        const usersCollectionRef = collection(db, "users");
-        const q = query(usersCollectionRef, limit(1));
-        
-        let isFirstUser = false;
-        try {
-            const initialUserCheck = await getDocs(q);
-            isFirstUser = initialUserCheck.empty;
-        } catch (err) {
-            isFirstUser = false;
-        }
-        
+        // Default to 'user' and 'gratuit'. The admin role can be assigned manually in Firestore for security.
         const profileData = {
-            displayName: values.displayName,
+            fullName: values.fullName,
             phone: values.phone,
             competitionType: values.competitionType,
-            role: isFirstUser ? 'admin' : 'user',
-            subscription_type: isFirstUser ? 'premium' : 'gratuit',
+            role: 'user',
+            subscription_type: 'gratuit',
             createdAt: serverTimestamp(),
             email: email,
         };
@@ -89,25 +79,25 @@ export function SignupForm() {
         router.push("/home");
 
     } catch (error: any) {
+        let description = "Une erreur inconnue est survenue.";
         if (error.code === 'auth/email-already-in-use') {
-            toast({
-                title: "Erreur d'inscription",
-                description: "Ce numéro de téléphone est déjà utilisé.",
-                variant: "destructive",
-            });
-        } else {
+            description = "Ce numéro de téléphone est déjà utilisé.";
+        } else if (error.code === 'permission-denied') {
+            description = "Permission refusée. La création du profil a échoué.";
              errorEmitter.emit('permission-error', new FirestorePermissionError({
                 path: `users/${auth.currentUser?.uid || 'unknown_user'}`,
                 operation: 'create',
                 requestResourceData: { phone: values.phone, competitionType: values.competitionType }
              }));
-             toast({
-                title: "Erreur d'inscription",
-                description: "Impossible de créer le profil. Vérifiez vos permissions ou contactez le support.",
-                variant: "destructive",
-            });
-             console.error("Signup error:", error);
         }
+         
+        toast({
+            title: "Erreur d'inscription",
+            description: description,
+            variant: "destructive",
+        });
+        console.error("Signup error:", error);
+
     } finally {
         setLoading(false);
     }
@@ -118,7 +108,7 @@ export function SignupForm() {
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
           <FormField
             control={form.control}
-            name="displayName"
+            name="fullName"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Nom et Prénom(s)</FormLabel>
