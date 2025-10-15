@@ -686,15 +686,24 @@ export default function QuizAdminPanel() {
 
       const currentValues = getValues();
       const existingQuestions = currentValues.questions || [];
+      
+      const mapQuestions = (questions: any[]) => {
+        return (questions || []).map((q: any) => {
+            const options = Array.isArray(q.options) ? q.options : [];
+            while(options.length < 4) {
+                options.push('');
+            }
+            return {
+                question: q.question,
+                options: options.slice(0, 4),
+                correctAnswers: q.correctAnswers,
+                explanation: q.explanation || '',
+            }
+        });
+      };
 
       if (mode === 'add' && existingQuestions.length > 0) {
-        // Ajouter les nouvelles questions aux existantes
-        const newQuestions = (quiz.questions || []).map((q: any) => ({
-          question: q.question,
-          options: q.options,
-          correctAnswers: q.correctAnswers,
-          explanation: q.explanation || '',
-        }));
+        const newQuestions = mapQuestions(quiz.questions);
 
         formMethods.reset({
           ...currentValues,
@@ -706,7 +715,6 @@ export default function QuizAdminPanel() {
           description: `${numQuestions} nouvelle(s) question(s) ajoutée(s) sur "${input}". Total: ${existingQuestions.length + newQuestions.length} questions.`
         });
       } else {
-        // Remplacer toutes les questions (mode par défaut)
         formMethods.reset({
           ...currentValues,
           title: quiz.title,
@@ -714,12 +722,7 @@ export default function QuizAdminPanel() {
           category: quiz.category,
           difficulty: quiz.difficulty,
           duration_minutes: quiz.duration_minutes,
-          questions: (quiz.questions || []).map((q: any) => ({
-              question: q.question,
-              options: q.options,
-              correctAnswers: q.correctAnswers,
-              explanation: q.explanation || '',
-          })),
+          questions: mapQuestions(quiz.questions),
         });
 
         toast({ title: "Quiz généré !", description: `Un quiz sur "${input}" a été créé. Veuillez le vérifier avant de l'enregistrer.`});

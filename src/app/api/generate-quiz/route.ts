@@ -59,9 +59,13 @@ export async function POST(req: Request) {
                 const j = Math.floor(Math.random() * (i + 1));
                 [options[i], options[j]] = [options[j], options[i]];
             }
+            while (options.length < 4) {
+              options.push(`Option vide ${options.length + 1}`); // Add placeholder if not enough options
+            }
+
             return {
                 question: q.question,
-                options: options,
+                options: options.slice(0, 4), // Ensure exactly 4 options
                 correctAnswers: [q.correct_answer],
                 explanation: `La bonne réponse est ${q.correct_answer}.`
             };
