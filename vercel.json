@@ -1,0 +1,13 @@
+{
+  "builds": [
+    {
+      "src": "next.config.ts",
+      "use": "@vercel/next"
+    }
+  ],
+  "functions": {
+    "src/ai/dev-server.ts": {
+      "memory": 1024
+    }
+  }
+}
