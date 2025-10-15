@@ -59,8 +59,9 @@ export async function POST(req: Request) {
                 const j = Math.floor(Math.random() * (i + 1));
                 [options[i], options[j]] = [options[j], options[i]];
             }
+            // Ensure there are always 4 options
             while (options.length < 4) {
-              options.push(`Option vide ${options.length + 1}`); // Add placeholder if not enough options
+              options.push(''); 
             }
 
             return {
@@ -113,6 +114,15 @@ export async function POST(req: Request) {
         if (!quiz) {
             throw new Error("AI model did not return a valid quiz object.");
         }
+        
+        // Final check to ensure every question has 4 options
+        quiz.questions.forEach(q => {
+            while(q.options.length < 4) {
+                q.options.push('');
+            }
+            q.options = q.options.slice(0, 4);
+        });
+
 
         return NextResponse.json({ quiz });
     }

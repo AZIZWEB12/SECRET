@@ -57,7 +57,7 @@ import MathText from '@/components/math-text';
 
 const questionSchema = z.object({
   question: z.string().min(1, "La question est requise."),
-  options: z.array(z.string().min(1, "L'option ne peut pas être vide.")).min(2, "Au moins deux options sont requises."),
+  options: z.array(z.string()).min(2, "Au moins deux options sont requises.").max(4, "Il ne peut y avoir plus de 4 options."),
   correctAnswers: z.array(z.string()).min(1, "Au moins une bonne réponse est requise."),
   explanation: z.string().optional(),
 });
@@ -689,7 +689,7 @@ export default function QuizAdminPanel() {
       
       const mapQuestions = (questions: any[]) => {
         return (questions || []).map((q: any) => {
-            const options = Array.isArray(q.options) ? q.options : [];
+            const options = Array.isArray(q.options) ? [...q.options] : [];
             while(options.length < 4) {
                 options.push('');
             }
