@@ -1,6 +1,6 @@
 'use server';
 /**
- * @fileOverview Analyzes a user's performance and provides recommendations.
+ * @fileOverview Analyzes a user\'s performance and provides recommendations.
  *
  * - analyzeUserPerformance - A function that handles the analysis.
  * - AnalyzeUserPerformanceInput - The input type for the function.
@@ -13,7 +13,7 @@ import {z} from 'genkit';
 const AnalyzeUserPerformanceInputSchema = z.object({
   userId: z.string().describe("The ID of the user to analyze."),
   // In a real app, you would pass user performance data here.
-  // For this example, we'll simulate it in the prompt.
+  // For this example, we\'ll simulate it in the prompt.
 });
 export type AnalyzeUserPerformanceInput = z.infer<typeof AnalyzeUserPerformanceInputSchema>;
 
@@ -21,7 +21,7 @@ const AnalyzeUserPerformanceOutputSchema = z.object({
   insights: z
     .string()
     .describe(
-      "A summary of the user's strengths and weaknesses in French."
+      "A summary of the user\'s strengths and weaknesses in French."
     ),
   recommendations: z
     .array(z.string())

@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
-import { generate } from 'genkit';
+import {z, generate} from 'genkit';
 
 
 // Define the schemas for input and output using Zod
@@ -95,10 +94,8 @@ export async function POST(req: Request) {
           - Le titre, la description et la catégorie sont pertinents et en français.
         `;
 
-        const model = 'googleai/gemini-2.5-flash';
-        
-        const response = await generate({
-            model,
+        const { output } = await generate({
+            model: 'googleai/gemini-2.5-flash',
             prompt: generationPrompt,
             output: {
                 format: 'json',
@@ -106,7 +103,7 @@ export async function POST(req: Request) {
             },
         });
 
-        const quiz = response.output;
+        const quiz = output;
 
         if (!quiz) {
             throw new Error("AI model did not return a valid quiz object.");

@@ -56,7 +56,7 @@ const generateVideoThumbnailFlow = ai.defineFlow(
           {text: 'generate an appealing thumbnail for this video'},
         ],
         config: {
-          responseModalities: ['TEXT', 'IMAGE'], // MUST provide both TEXT and IMAGE, IMAGE only won't work
+          responseModalities: ['TEXT', 'IMAGE'], // MUST provide both TEXT and IMAGE, IMAGE only won\'t work
         },
       });
     return {thumbnailDataUri: media!.url!};
