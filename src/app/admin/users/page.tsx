@@ -9,7 +9,7 @@ import { fr } from 'date-fns/locale';
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { AppUser, getUsersFromFirestore, updateUserRoleInFirestore, updateUserSubscriptionInFirestore } from "@/lib/firestore.service";
+import { AppUser, getUsersFromFirestore, updateUserRoleInFirestore, updateUserSubscriptionInFirestore, parseFirestoreDate } from "@/lib/firestore.service";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
@@ -30,7 +30,7 @@ function ManageUserDialog({ user, onUpdate }: { user: AppUser, onUpdate: () => v
                 await updateUserRoleInFirestore(user.uid, newRole as 'admin' | 'user');
             }
             if (newSubscription !== user.subscription_type) {
-                await updateUserSubscriptionInFirestore(user.uid, { type: newSubscription as 'gratuit' | 'premium', tier: newSubscription === 'premium' ? 'annuel' : null });
+                await updateUserSubscriptionInFirestore(user.uid, newSubscription as 'gratuit' | 'premium');
             }
             toast({ title: "Succès", description: `L'utilisateur ${user.displayName} a été mis à jour.` });
             onUpdate();
@@ -169,7 +169,7 @@ export default function AdminUsersPage() {
                                     <Badge variant={user.subscription_type === 'premium' ? 'default' : 'outline'}>{user.subscription_type}</Badge>
                                 </TableCell>
                                 <TableCell>
-                                    {user.createdAt ? format(user.createdAt, 'dd MMM yyyy', { locale: fr }) : '-'}
+                                    {user.createdAt ? format(parseFirestoreDate(user.createdAt), 'dd MMM yyyy', { locale: fr }) : '-'}
                                 </TableCell>
                                 <TableCell className="text-right">
                                     <ManageUserDialog user={user} onUpdate={fetchUsers} />
