@@ -1,3 +1,4 @@
+
 'use client';
 
 import { AppLayout } from "@/components/layout/app-layout";
@@ -21,7 +22,7 @@ import { Loader2 } from "lucide-react";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
-import { Attempt, getAttemptsFromFirestore } from "@/lib/firestore.service";
+import { Attempt, getAttemptsFromFirestore, parseFirestoreDate } from "@/lib/firestore.service";
 
 const profileFormSchema = z.object({
   displayName: z.string().min(2, "Le nom est trop court."),
@@ -141,8 +142,8 @@ export default function ProfilePage() {
                         <h1 className="text-3xl font-bold font-headline">{profile.displayName}</h1>
                         <p className="text-muted-foreground">{user.phoneNumber || profile.phone}</p>
                         <div className="mt-2 flex flex-wrap items-center gap-2 justify-center md:justify-start">
-                            <Badge variant={profile.subscription_type === 'premium' ? "default" : "secondary"}>
-                                {profile.subscription_type}
+                            <Badge variant={profile.subscription_type.type === 'premium' ? "default" : "secondary"}>
+                                {profile.subscription_type.type}
                             </Badge>
                             <Badge variant="outline">{profile.competitionType === 'direct' ? 'Concours Direct' : 'Concours Professionnel'}</Badge>
                         </div>

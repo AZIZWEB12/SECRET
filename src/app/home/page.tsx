@@ -1,3 +1,4 @@
+
 'use client';
 
 import { AppLayout } from '@/components/layout/app-layout';
@@ -106,13 +107,13 @@ export default function HomePage() {
         <div className="flex justify-between items-start">
             <div>
                  <h1 className="text-3xl font-bold tracking-tight font-headline">
-                    Bonjour, <span className="text-primary">{profile?.fullName?.split(' ')[0] || 'cher utilisateur'}</span> !
+                    Bonjour, <span className="text-primary">{profile?.displayName?.split(' ')[0] || 'cher utilisateur'}</span> !
                 </h1>
                 <p className="text-muted-foreground">
                     Prêt à relever de nouveaux défis ? Voici vos outils pour réussir.
                 </p>
             </div>
-             {profile?.subscription_type === 'premium' && (
+             {profile?.subscription_type.type === 'premium' && (
                 <Badge variant="default" className="text-sm bg-gradient-to-r from-yellow-400 to-orange-500 text-white border-none shadow-lg">
                     <Star className="mr-2 h-4 w-4" /> Premium
                 </Badge>
@@ -177,7 +178,7 @@ export default function HomePage() {
             ))}
         </div>
       </div>
-       {profile?.subscription_type === 'gratuit' && (
+       {profile?.subscription_type.type === 'gratuit' && (
         <Card className="mt-12 text-center p-8 bg-primary/5">
           <h3 className="text-2xl font-bold font-headline gradient-premium">Passez au niveau supérieur</h3>
           <p className="text-muted-foreground mt-2 mb-4">Débloquez l'accès illimité à toutes nos ressources et maximisez vos chances de succès.</p>

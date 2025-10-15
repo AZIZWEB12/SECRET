@@ -1,3 +1,4 @@
+
 'use client';
 
 import { AppLayout } from '@/components/layout/app-layout';
@@ -21,7 +22,7 @@ export default function PremiumPage() {
     if (!user || !profile) return;
     setIsSubmitting(true);
     
-    const newStatus = profile.subscription_type === 'premium' ? 'gratuit' : 'premium';
+    const newStatus = profile.subscription_type.type === 'premium' ? 'gratuit' : 'premium';
 
     try {
         await updateUserSubscriptionInFirestore(user.uid, { type: newStatus, tier: newStatus === 'premium' ? 'annuel' : null });
@@ -49,7 +50,7 @@ export default function PremiumPage() {
         </p>
       </div>
 
-      {profile?.subscription_type === 'premium' ? (
+      {profile?.subscription_type.type === 'premium' ? (
          <Card className="mx-auto mt-12 max-w-lg text-center">
             <CardHeader>
                 <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-green-100">

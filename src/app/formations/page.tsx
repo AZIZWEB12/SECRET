@@ -1,3 +1,4 @@
+
 'use client';
 
 import { AppLayout } from '@/components/layout/app-layout';
@@ -37,7 +38,7 @@ export default function FormationsPage() {
 
     const canAccess = (formation: Formation) => {
         if (!formation.premiumOnly) return true;
-        return profile?.subscription_type === 'premium';
+        return profile?.subscription_type.type === 'premium';
     };
 
     return (

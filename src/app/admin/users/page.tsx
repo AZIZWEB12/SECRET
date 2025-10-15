@@ -1,3 +1,4 @@
+
 'use client';
 import { AppLayout } from "@/components/layout/app-layout";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -18,7 +19,7 @@ import { useAuth } from "@/hooks/use-auth";
 
 function ManageUserDialog({ user, onUpdate }: { user: AppUser, onUpdate: () => void }) {
     const [newRole, setNewRole] = useState(user.role);
-    const [newSubscription, setNewSubscription] = useState(user.subscription_type);
+    const [newSubscriptionType, setNewSubscriptionType] = useState(user.subscription_type.type);
     const [isUpdating, setIsUpdating] = useState(false);
     const { toast } = useToast();
     const { profile: adminProfile } = useAuth();
@@ -29,8 +30,8 @@ function ManageUserDialog({ user, onUpdate }: { user: AppUser, onUpdate: () => v
             if (newRole !== user.role) {
                 await updateUserRoleInFirestore(user.uid, newRole as 'admin' | 'user');
             }
-            if (newSubscription !== user.subscription_type) {
-                await updateUserSubscriptionInFirestore(user.uid, newSubscription as 'gratuit' | 'premium');
+            if (newSubscriptionType !== user.subscription_type.type) {
+                await updateUserSubscriptionInFirestore(user.uid, { type: newSubscriptionType as 'gratuit' | 'premium', tier: newSubscriptionType === 'premium' ? 'annuel' : null });
             }
             toast({ title: "Succès", description: `L'utilisateur ${user.displayName} a été mis à jour.` });
             onUpdate();
@@ -75,7 +76,7 @@ function ManageUserDialog({ user, onUpdate }: { user: AppUser, onUpdate: () => v
                     </div>
                     <div className="space-y-2">
                         <Label>Statut de l'abonnement</Label>
-                        <Select value={newSubscription} onValueChange={(value) => setNewSubscription(value)}>
+                        <Select value={newSubscriptionType} onValueChange={(value) => setNewSubscriptionType(value)}>
                             <SelectTrigger>
                                 <SelectValue />
                             </SelectTrigger>
@@ -166,7 +167,7 @@ export default function AdminUsersPage() {
                                     <Badge variant={user.role === 'admin' ? 'destructive' : 'secondary'}>{user.role}</Badge>
                                 </TableCell>
                                 <TableCell>
-                                    <Badge variant={user.subscription_type === 'premium' ? 'default' : 'outline'}>{user.subscription_type}</Badge>
+                                    <Badge variant={user.subscription_type.type === 'premium' ? 'default' : 'outline'}>{user.subscription_type.type}</Badge>
                                 </TableCell>
                                 <TableCell>
                                     {user.createdAt ? format(parseFirestoreDate(user.createdAt), 'dd MMM yyyy', { locale: fr }) : '-'}

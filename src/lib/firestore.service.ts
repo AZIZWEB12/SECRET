@@ -1,3 +1,4 @@
+
 // src/lib/firestore.service.ts
 import { db } from './firebase';
 import { collection, addDoc, getDocs, QueryDocumentSnapshot, DocumentData, Timestamp, doc, updateDoc, query, where, orderBy, deleteDoc, serverTimestamp, getDoc, writeBatch, limit, onSnapshot } from 'firebase/firestore';
@@ -33,8 +34,10 @@ export interface AppUser {
   phone: string;
   competitionType: 'direct' | 'professionnel';
   role: 'user' | 'admin';
-  subscription_type: 'gratuit' | 'premium';
-  subscription_tier?: 'mensuel' | 'annuel';
+  subscription_type: {
+    type: 'gratuit' | 'premium';
+    tier?: 'mensuel' | 'annuel';
+  };
   subscription_expires_at?: Date | Timestamp | null;
   photoURL?: string;
   preferences?: {
@@ -235,10 +238,16 @@ export const updateUserRoleInFirestore = async (uid: string, role: 'admin' | 'us
 
 export const updateUserSubscriptionInFirestore = async (uid: string, subscription: { type: 'gratuit' | 'premium', tier: 'mensuel' | 'annuel' | null }) => {
     const userDocRef = doc(db, 'users', uid);
-    const updateData: Partial<AppUser> = {};
-
-    updateData.subscription_type = subscription.type;
     
+    const subscriptionData = {
+        type: subscription.type,
+        tier: subscription.tier
+    };
+
+    const updateData: { subscription_type: any, subscription_expires_at?: any } = {
+        subscription_type: subscriptionData
+    };
+
     if (subscription.type === 'premium') {
         const now = new Date();
         if (subscription.tier === 'mensuel') {
@@ -246,14 +255,11 @@ export const updateUserSubscriptionInFirestore = async (uid: string, subscriptio
         } else if (subscription.tier === 'annuel') {
             updateData.subscription_expires_at = new Date(now.setFullYear(now.getFullYear() + 1));
         }
-        updateData.subscription_tier = subscription.tier || undefined;
     } else {
-        // If setting to 'gratuit', clear expiry and tier
         updateData.subscription_expires_at = null;
-        updateData.subscription_tier = undefined;
     }
 
-    await updateDoc(userDocRef, updateData as any);
+    await updateDoc(userDocRef, updateData);
 };
 
 

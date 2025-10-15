@@ -1,3 +1,4 @@
+
 'use client';
 
 import { AppLayout } from '@/components/layout/app-layout';
@@ -221,7 +222,7 @@ export default function TakeQuizPage() {
   }
 
   // Check premium access after both quiz and profile have loaded
-  if (quiz.access_type === 'premium' && profile?.subscription_type !== 'premium') {
+  if (quiz.access_type === 'premium' && profile?.subscription_type.type !== 'premium') {
      return (
       <AppLayout>
         <Alert variant="destructive" className="max-w-md mx-auto text-center">

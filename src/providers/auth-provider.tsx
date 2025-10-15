@@ -1,3 +1,4 @@
+
 'use client';
 
 import { createContext, useState, useEffect, ReactNode, useMemo } from 'react';
@@ -45,9 +46,18 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
         (docSnap) => {
           if (docSnap.exists()) {
             const data = docSnap.data() as DocumentData;
+            
+            // Ensure subscription_type is an object, providing a default if it's a string (for old data)
+            let subscription_type = data.subscription_type;
+            if (typeof subscription_type === 'string') {
+              subscription_type = { type: subscription_type, tier: undefined };
+            }
+
+
             setProfile({
               uid: docSnap.id,
               ...data,
+              subscription_type: subscription_type || { type: 'gratuit' },
               createdAt: parseFirestoreDate(data.createdAt),
               lastLoginAt: data.lastLoginAt ? parseFirestoreDate(data.lastLoginAt) : undefined,
             } as AppUser);

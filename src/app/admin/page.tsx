@@ -28,7 +28,7 @@ const adminLinks = [
 
 export default function AdminDashboardPage() {
     const [stats, setStats] = useState({ totalUsers: 0, premiumUsers: 0 });
-    const [recentUsers, setRecentUsers] = useState<AppUser[]>([]);
+    const [recentUsers, setRecentUsers] useState<AppUser[]>([]);
     const [loadingStats, setLoadingStats] = useState(true);
     const [loadingUsers, setLoadingUsers] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -39,8 +39,9 @@ export default function AdminDashboardPage() {
 
         const unsubStats = onSnapshot(usersRef, 
             (userSnapshot) => {
-                const totalUsers = userSnapshot.size;
-                const premiumUsers = userSnapshot.docs.filter(doc => doc.data().subscription_type === 'premium').length;
+                const usersData = userSnapshot.docs.map(doc => doc.data() as AppUser);
+                const totalUsers = usersData.length;
+                const premiumUsers = usersData.filter(u => u.subscription_type.type === 'premium').length;
                 
                 setStats({
                     totalUsers,
@@ -147,8 +148,8 @@ export default function AdminDashboardPage() {
                                             {user.createdAt ? formatDistanceToNow(parseFirestoreDate(user.createdAt), { addSuffix: true, locale: fr }) : '-'}
                                         </TableCell>
                                         <TableCell>
-                                             <Badge variant={user.subscription_type === 'premium' ? 'default' : 'secondary'}>
-                                                {user.subscription_type}
+                                             <Badge variant={user.subscription_type.type === 'premium' ? 'default' : 'secondary'}>
+                                                {user.subscription_type.type}
                                             </Badge>
                                         </TableCell>
                                     </TableRow>
