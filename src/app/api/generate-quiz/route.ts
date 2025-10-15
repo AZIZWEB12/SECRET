@@ -1,8 +1,7 @@
 import { NextResponse } from 'next/server';
 import {ai} from '@/ai/genkit';
-import {z} from 'genkit/zod';
-import { generate } from 'genkit/ai';
-import { streamToByteString } from 'genkit/utils';
+import {z} from 'genkit';
+import { generate } from 'genkit';
 
 
 // Define the schemas for input and output using Zod
@@ -107,7 +106,7 @@ export async function POST(req: Request) {
             },
         });
 
-        const quiz = response.output();
+        const quiz = response.output;
 
         if (!quiz) {
             throw new Error("AI model did not return a valid quiz object.");
