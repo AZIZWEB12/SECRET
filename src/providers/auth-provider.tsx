@@ -48,10 +48,9 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
             const data = docSnap.data() as DocumentData;
             
             let subscription_type = data.subscription_type;
-            if (typeof subscription_type === 'string') {
-              subscription_type = { type: subscription_type, tier: undefined };
-            } else if (!subscription_type) {
-              subscription_type = { type: 'gratuit', tier: null };
+            // Ensure subscription_type is always an object for consistency
+            if (typeof subscription_type === 'string' || !subscription_type) {
+              subscription_type = { type: subscription_type || 'gratuit', tier: null };
             }
 
 

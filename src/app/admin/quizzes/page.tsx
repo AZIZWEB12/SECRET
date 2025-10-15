@@ -22,6 +22,7 @@ import {
   updateQuizInFirestore,
   NewQuizData,
   subscribeToQuizzes,
+  parseFirestoreDate,
 } from '@/lib/firestore.service';
 // The quiz generation is performed on the server via an API route.
 // Do NOT import server-only functions directly into client components.
@@ -579,7 +580,7 @@ export default function QuizAdminPanel() {
         access_type: quiz.access_type,
         duration_minutes: quiz.duration_minutes,
         isMockExam: quiz.isMockExam || false,
-        scheduledFor: quiz.scheduledFor ? new Date(quiz.scheduledFor) : undefined,
+        scheduledFor: quiz.scheduledFor ? parseFirestoreDate(quiz.scheduledFor) : undefined,
         questions: (quiz.questions || []).map(q => ({
           question: q.question,
           options: q.options,

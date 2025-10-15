@@ -10,12 +10,16 @@ import { fr } from 'date-fns/locale';
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { AppUser, getUsersFromFirestore, updateUserRoleInFirestore, updateUserSubscriptionInFirestore, parseFirestoreDate } from "@/lib/firestore.service";
+import { AppUser, parseFirestoreDate, updateUserRoleInFirestore, updateUserSubscriptionInFirestore } from "@/lib/firestore.service";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAuth } from "@/hooks/use-auth";
+import { collection, onSnapshot, query } from "firebase/firestore";
+import { db } from "@/lib/firebase";
+import { errorEmitter } from "@/firebase/error-emitter";
+import { FirestorePermissionError } from "@/firebase/errors";
 
 function ManageUserDialog({ user, onUpdate }: { user: AppUser, onUpdate: () => void }) {
     const [newRole, setNewRole] = useState(user.role);
@@ -31,7 +35,7 @@ function ManageUserDialog({ user, onUpdate }: { user: AppUser, onUpdate: () => v
             if (newRole !== user.role) {
                 await updateUserRoleInFirestore(user.uid, newRole as 'admin' | 'user');
             }
-            if (newSubscriptionType !== user.subscription_type.type) {
+            if (newSubscriptionType !== (user.subscription_type?.type || 'gratuit')) {
                 await updateUserSubscriptionInFirestore(user.uid, { type: newSubscriptionType as 'gratuit' | 'premium', tier: newSubscriptionType === 'premium' ? 'annuel' : null });
             }
             toast({ title: "Succès", description: `L'utilisateur ${user.displayName} a été mis à jour.` });
@@ -105,20 +109,31 @@ export default function AdminUsersPage() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
-    const fetchUsers = async () => {
-        try {
-            setLoading(true);
-            const userList = await getUsersFromFirestore();
-            setUsers(userList);
-        } catch (err) {
-            setError("Erreur de chargement des utilisateurs.");
-        } finally {
-            setLoading(false);
-        }
-    };
-
     useEffect(() => {
-        fetchUsers();
+        const usersCollectionRef = collection(db, 'users');
+        const q = query(usersCollectionRef);
+
+        const unsubscribe = onSnapshot(q, (querySnapshot) => {
+            const userList = querySnapshot.docs.map((doc) => {
+                const data = doc.data();
+                return {
+                    uid: doc.id,
+                    ...data,
+                    createdAt: parseFirestoreDate(data.createdAt),
+                } as AppUser;
+            });
+            setUsers(userList);
+            setLoading(false);
+        }, (err) => {
+            setError("Erreur de chargement des utilisateurs.");
+            setLoading(false);
+            errorEmitter.emit('permission-error', new FirestorePermissionError({
+                path: usersCollectionRef.path,
+                operation: 'list'
+            }));
+        });
+
+        return () => unsubscribe();
     }, []);
 
     return (
@@ -171,10 +186,10 @@ export default function AdminUsersPage() {
                                     <Badge variant={user.subscription_type.type === 'premium' ? 'default' : 'outline'}>{user.subscription_type.type}</Badge>
                                 </TableCell>
                                 <TableCell>
-                                    {user.createdAt ? format(parseFirestoreDate(user.createdAt), 'dd MMM yyyy', { locale: fr }) : '-'}
+                                    {user.createdAt ? format(user.createdAt, 'dd MMM yyyy', { locale: fr }) : '-'}
                                 </TableCell>
                                 <TableCell className="text-right">
-                                    <ManageUserDialog user={user} onUpdate={fetchUsers} />
+                                    <ManageUserDialog user={user} onUpdate={() => {}} />
                                 </TableCell>
                             </TableRow>
                         ))}

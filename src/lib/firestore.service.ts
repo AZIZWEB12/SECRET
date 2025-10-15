@@ -36,7 +36,7 @@ export interface AppUser {
   role: 'user' | 'admin';
   subscription_type: {
     type: 'gratuit' | 'premium';
-    tier?: 'mensuel' | 'annuel';
+    tier?: 'mensuel' | 'annuel' | null;
   };
   subscription_expires_at?: Date | Timestamp | null;
   photoURL?: string;
