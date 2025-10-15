@@ -355,7 +355,7 @@ function QuestionsForm({ qIndex, removeQuestion }: { qIndex: number, removeQuest
                     />
                     <div className="p-4 bg-background rounded-md border min-h-[140px]">
                         <Label className="text-sm text-muted-foreground">Aperçu</Label>
-                        <div className="text-lg"><MathText text={watch(`questions.${qIndex}.question`) || ''} isBlock /></div>
+                        <div className="text-lg"><MathText text={watch(`questions.${qIndex}.question`)} isBlock /></div>
                     </div>
                 </div>
                 {questionErrors?.question && <p className="text-red-500 text-xs mt-1">{questionErrors.question.message}</p>}
@@ -372,7 +372,7 @@ function QuestionsForm({ qIndex, removeQuestion }: { qIndex: number, removeQuest
                     />
                     <div className="p-4 bg-background rounded-md border min-h-[140px]">
                         <Label className="text-sm text-muted-foreground">Aperçu</Label>
-                        <div className="text-base"><MathText text={watch(`questions.${qIndex}.explanation`) || ''} isBlock /></div>
+                        <div className="text-base"><MathText text={watch(`questions.${qIndex}.explanation`)} isBlock /></div>
                     </div>
                 </div>
             </div>
@@ -396,7 +396,7 @@ function QuestionsForm({ qIndex, removeQuestion }: { qIndex: number, removeQuest
                             <div className="flex-1 grid grid-cols-2 gap-2">
                                 <Input {...register(`questions.${qIndex}.options.${optionIndex}`)} placeholder={`Option ${optionIndex + 1}`} />
                                 <div className="p-2 border rounded-md bg-background text-sm flex items-center">
-                                    <MathText text={watch(`questions.${qIndex}.options.${optionIndex}`) || ''} />
+                                    <MathText text={watch(`questions.${qIndex}.options.${optionIndex}`)} />
                                 </div>
                                 {questionErrors?.options?.[optionIndex] && <p className="text-red-500 text-xs mt-1 col-span-2">{questionErrors.options[optionIndex].message}</p>}
                             </div>

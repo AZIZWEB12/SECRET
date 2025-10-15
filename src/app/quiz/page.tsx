@@ -23,17 +23,17 @@ export default function QuizPage() {
 
     useEffect(() => {
         setLoading(true);
-        try {
-            const unsubscribe = subscribeToQuizzes((quizList) => {
-                setQuizzes(quizList);
-                setLoading(false);
-                setError(null);
-            });
-            return () => unsubscribe();
-        } catch (err) {
+        const unsubscribe = subscribeToQuizzes((quizList) => {
+            setQuizzes(quizList);
             setLoading(false);
+            setError(null);
+        }, (err) => {
+            console.error("Error fetching quizzes:", err);
             setError("Erreur de chargement des quiz.");
-        }
+            setLoading(false);
+        });
+
+        return () => unsubscribe();
     }, []);
 
     const handleQuizClick = (quiz: Quiz) => {

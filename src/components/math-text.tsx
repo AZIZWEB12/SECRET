@@ -11,7 +11,7 @@ interface MathTextProps {
 const MathText: React.FC<MathTextProps> = ({ text, isBlock = false }) => {
     // 1. Robust check: Ensure text is a non-empty string.
     if (typeof text !== 'string' || !text) {
-        return null;
+        return <span>{text || ''}</span>;
     }
 
     // 2. Safely format the text for KaTeX.
@@ -24,7 +24,7 @@ const MathText: React.FC<MathTextProps> = ({ text, isBlock = false }) => {
         }
         return <InlineMath math={formattedText} />;
     } catch (error) {
-        console.error("KaTeX parsing error:", error);
+        console.error("KaTeX parsing error for text:", text, error);
         // Fallback to rendering the original text if KaTeX fails
         return <span>{text}</span>;
     }

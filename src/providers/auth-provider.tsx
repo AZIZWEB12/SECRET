@@ -13,7 +13,6 @@ export interface AuthContextType {
   user: User | null;
   profile: AppUser | null;
   loading: boolean;
-  initialAuthLoaded: boolean;
 }
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -21,16 +20,16 @@ export const AuthContext = createContext<AuthContextType | undefined>(undefined)
 export default function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<AppUser | null>(null);
-  const [initialAuthLoaded, setInitialAuthLoaded] = useState(false);
+  const [authLoading, setAuthLoading] = useState(true);
   const [profileLoading, setProfileLoading] = useState(true);
 
   useEffect(() => {
     const unsubscribeAuth = onAuthStateChanged(auth, (firebaseUser) => {
       setUser(firebaseUser);
-      setInitialAuthLoaded(true); // Auth state is now determined (user or null)
+      setAuthLoading(false); 
       if (!firebaseUser) {
         setProfile(null);
-        setProfileLoading(false); // No profile to load
+        setProfileLoading(false); 
       }
     });
 
@@ -72,21 +71,18 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
       );
       return () => unsubscribeProfile();
     } else {
-      setProfile(null);
+      // If there's no user, there's no profile to load.
       setProfileLoading(false);
     }
   }, [user]);
 
-  // The overall loading state is true if we are waiting for the initial auth state
-  // OR if we have a user but are still waiting for their profile to load.
-  const loading = !initialAuthLoaded || profileLoading;
+  const loading = authLoading || profileLoading;
 
   const value = useMemo(() => ({
      user,
      profile,
      loading,
-     initialAuthLoaded
-  }), [user, profile, loading, initialAuthLoaded]);
+  }), [user, profile, loading]);
 
 
   return (
