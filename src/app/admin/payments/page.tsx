@@ -1,3 +1,4 @@
+
 'use client';
 
 import { AppLayout } from '@/components/layout/app-layout';
@@ -8,7 +9,7 @@ import { CreditCard, Check, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { collection, onSnapshot, query, orderBy, doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import { Transaction } from '@/lib/types';
+import { Transaction } from '@/lib/firestore.service';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertTriangle } from 'lucide-react';
@@ -53,7 +54,12 @@ export default function AdminPaymentsPage() {
     const handleTransactionStatusUpdate = async (transactionId: string, newStatus: 'approved' | 'rejected') => {
         const transactionRef = doc(db, 'transactions', transactionId);
         const transaction = transactions.find(p => p.id === transactionId);
-        if (!transaction) return;
+        
+        // This is the critical fix.
+        if (!transaction) {
+            toast({ title: "Erreur", description: "Transaction non trouvée.", variant: 'destructive' });
+            return;
+        }
 
         const updateData: { status: 'approved' | 'rejected', approvedAt?: any } = { status: newStatus };
         if (newStatus === 'approved') {
@@ -66,8 +72,8 @@ export default function AdminPaymentsPage() {
             if (newStatus === 'approved') {
                 const userProfileRef = doc(db, 'users', transaction.userId);
                 await updateDoc(userProfileRef, { 
-                    subscription_type: 'premium',
-                    subscription_tier: 'annuel', // or 'mensuel' depending on your logic
+                    'subscription_type.type': 'premium',
+                    'subscription_type.tier': 'annuel', // or 'mensuel' depending on your logic
                     subscription_expires_at: serverTimestamp() // You should calculate the expiry date
                 });
             }
@@ -86,7 +92,7 @@ export default function AdminPaymentsPage() {
 
              if (newStatus === 'approved') {
                  const userProfileRef = doc(db, 'users', transaction.userId);
-                 const userProfileUpdateData = { subscription_type: 'premium', subscription_tier: 'annuel' };
+                 const userProfileUpdateData = { 'subscription_type.type': 'premium', 'subscription_type.tier': 'annuel' };
                  errorEmitter.emit('permission-error', new FirestorePermissionError({
                     path: userProfileRef.path,
                     operation: 'update',
@@ -194,3 +200,5 @@ export default function AdminPaymentsPage() {
         </AppLayout>
     );
 }
+
+    
