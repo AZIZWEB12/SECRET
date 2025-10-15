@@ -162,9 +162,10 @@ export interface Formation {
 
 // #region -------- QUIZ FUNCTIONS --------
 
-export const subscribeToQuizzes = (callback: (quizzes: Quiz[]) => void): (() => void) => {
+export const subscribeToQuizzes = (callback: (quizzes: Quiz[]) => void, onError?: (error: Error) => void): (() => void) => {
   const q = query(collection(db, "quizzes"), orderBy("createdAt", "desc"));
-  return onSnapshot(q, (querySnapshot) => {
+  
+  const unsubscribe = onSnapshot(q, (querySnapshot) => {
     const quizzes = querySnapshot.docs.map((doc) => {
       const data = doc.data();
       return {
@@ -176,7 +177,12 @@ export const subscribeToQuizzes = (callback: (quizzes: Quiz[]) => void): (() => 
       } as Quiz;
     });
     callback(quizzes);
+  }, (error) => {
+    console.error("Error subscribing to quizzes:", error);
+    if (onError) onError(error);
   });
+
+  return unsubscribe;
 };
 
 export const saveQuizToFirestore = async (quizData: NewQuizData): Promise<string> => {
@@ -250,11 +256,14 @@ export const updateUserSubscriptionInFirestore = async (uid: string, subscriptio
 
     if (subscription.type === 'premium') {
         const now = new Date();
-        if (subscription.tier === 'mensuel') {
-            updateData.subscription_expires_at = new Date(now.setMonth(now.getMonth() + 1));
-        } else if (subscription.tier === 'annuel') {
+        // Set expiry to one year from now for annual subscriptions
+        if (subscription.tier === 'annuel') {
             updateData.subscription_expires_at = new Date(now.setFullYear(now.getFullYear() + 1));
         }
+        // Add monthly logic if needed
+        // else if (subscription.tier === 'mensuel') {
+        //     updateData.subscription_expires_at = new Date(now.setMonth(now.getMonth() + 1));
+        // }
     } else {
         updateData.subscription_expires_at = null;
     }
@@ -348,6 +357,18 @@ export const deleteFormationFromFirestore = async (id: string): Promise<void> =>
 
 
 // #region -------- NOTIFICATION FUNCTIONS --------
+
+export const createNotification = async (userId: string, title: string, description: string, href: string): Promise<void> => {
+  const notificationsCollectionRef = collection(db, 'notifications');
+  await addDoc(notificationsCollectionRef, {
+    userId,
+    title,
+    description,
+    href,
+    isRead: false,
+    createdAt: serverTimestamp(),
+  });
+};
 
 export const subscribeToUserNotifications = (userId: string, callback: (notifications: AppNotification[]) => void): (() => void) => {
   const q = query(

@@ -7,9 +7,9 @@ import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/ca
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { CreditCard, Check, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { collection, onSnapshot, query, orderBy, doc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, onSnapshot, query, orderBy, doc, updateDoc, serverTimestamp, writeBatch } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import { Transaction } from '@/lib/firestore.service';
+import { Transaction, createNotification, updateUserSubscriptionInFirestore } from '@/lib/firestore.service';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertTriangle } from 'lucide-react';
@@ -55,27 +55,42 @@ export default function AdminPaymentsPage() {
         const transactionRef = doc(db, 'transactions', transactionId);
         const transaction = transactions.find(p => p.id === transactionId);
         
-        // This is the critical fix.
         if (!transaction) {
             toast({ title: "Erreur", description: "Transaction non trouvée.", variant: 'destructive' });
             return;
         }
 
-        const updateData: { status: 'approved' | 'rejected', approvedAt?: any } = { status: newStatus };
-        if (newStatus === 'approved') {
-            updateData.approvedAt = serverTimestamp();
-        }
-
         try {
-            await updateDoc(transactionRef, updateData);
-            
             if (newStatus === 'approved') {
+                const batch = writeBatch(db);
+
+                // 1. Update the transaction status
+                batch.update(transactionRef, { status: 'approved', approvedAt: serverTimestamp() });
+                
+                // 2. Update user subscription
                 const userProfileRef = doc(db, 'users', transaction.userId);
-                await updateDoc(userProfileRef, { 
+                const now = new Date();
+                batch.update(userProfileRef, { 
                     'subscription_type.type': 'premium',
-                    'subscription_type.tier': 'annuel', // or 'mensuel' depending on your logic
-                    subscription_expires_at: serverTimestamp() // You should calculate the expiry date
+                    'subscription_type.tier': 'annuel', // Assume annual for now
+                    'subscription_expires_at': new Date(now.setFullYear(now.getFullYear() + 1))
                 });
+                
+                // 3. Create a notification for the user
+                const notificationRef = doc(collection(db, 'notifications'));
+                batch.set(notificationRef, {
+                    userId: transaction.userId,
+                    title: "Abonnement Activé !",
+                    description: "Votre compte a été mis à niveau vers Premium. Profitez de tous les avantages !",
+                    href: "/premium",
+                    isRead: false,
+                    createdAt: serverTimestamp(),
+                });
+
+                await batch.commit();
+
+            } else { // 'rejected'
+                await updateDoc(transactionRef, { status: newStatus });
             }
 
             toast({
@@ -83,22 +98,14 @@ export default function AdminPaymentsPage() {
                 description: `Le statut de la transaction a été mis à jour.`
             });
         } catch (err) {
+             console.error("Error updating transaction status:", err);
+             toast({ title: "Erreur", description: "La mise à jour a échoué.", variant: 'destructive' });
              const permissionError = new FirestorePermissionError({
                 path: transactionRef.path,
                 operation: 'update',
-                requestResourceData: updateData,
+                requestResourceData: { status: newStatus },
             });
             errorEmitter.emit('permission-error', permissionError);
-
-             if (newStatus === 'approved') {
-                 const userProfileRef = doc(db, 'users', transaction.userId);
-                 const userProfileUpdateData = { 'subscription_type.type': 'premium', 'subscription_type.tier': 'annuel' };
-                 errorEmitter.emit('permission-error', new FirestorePermissionError({
-                    path: userProfileRef.path,
-                    operation: 'update',
-                    requestResourceData: userProfileUpdateData,
-                }));
-            }
         }
     };
 
@@ -200,5 +207,3 @@ export default function AdminPaymentsPage() {
         </AppLayout>
     );
 }
-
-    
