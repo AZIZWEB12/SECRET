@@ -25,6 +25,8 @@ export function Header() {
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const router = useRouter();
 
+  const logoHref = user ? '/home' : '/';
+
   useEffect(() => {
     if (user?.uid) {
       const unsubscribe = subscribeToUserNotifications(user.uid, setNotifications);
@@ -50,7 +52,7 @@ export function Header() {
     <header className="sticky top-0 z-50 w-full border-b bg-background shadow-sm">
       <div className="container flex h-16 items-center">
         <div className="mr-4 hidden md:flex">
-          <Link href="/" className="mr-6 flex items-center space-x-2">
+          <Link href={logoHref} className="mr-6 flex items-center space-x-2">
             <AppLogo />
           </Link>
           <nav className="flex items-center space-x-6 text-sm font-medium">
@@ -73,7 +75,7 @@ export function Header() {
              <SheetHeader className="p-4 border-b mb-4">
                <SheetTitle>
                   <Link
-                    href="/"
+                    href={logoHref}
                     className="flex items-center"
                     onClick={() => setSheetOpen(false)}
                   >
@@ -89,7 +91,7 @@ export function Header() {
             </div>
           </SheetContent>
         </Sheet>
-        <Link href="/" className="flex items-center space-x-2 md:hidden">
+        <Link href={logoHref} className="flex items-center space-x-2 md:hidden">
           <AppLogo />
         </Link>
 
