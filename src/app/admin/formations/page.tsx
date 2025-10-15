@@ -4,11 +4,34 @@ import { AppLayout } from '@/components/layout/app-layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { GraduationCap, PlusCircle } from 'lucide-react';
+import { GraduationCap, PlusCircle, Trash2 } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Formation, subscribeToFormations, deleteFormationFromFirestore } from '@/lib/firestore.service';
+import { useToast } from '@/hooks/use-toast';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 
 export default function AdminFormationsPage() {
-  // This would fetch and list formations from Firestore
-  const formations = [];
+  const [formations, setFormations] = useState<Formation[]>([]);
+  const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
+
+  useEffect(() => {
+    const unsubscribe = subscribeToFormations((data) => {
+        setFormations(data);
+        setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  const handleDelete = async (id: string) => {
+    try {
+        await deleteFormationFromFirestore(id);
+        toast({ title: "Succès", description: "La formation a été supprimée." });
+    } catch (error) {
+        toast({ title: "Erreur", description: "Impossible de supprimer la formation.", variant: 'destructive' });
+    }
+  }
 
   return (
     <AppLayout>
@@ -17,7 +40,7 @@ export default function AdminFormationsPage() {
             <h1 className="text-3xl font-bold tracking-tight font-headline">Gérer les Formations</h1>
             <p className="text-muted-foreground">Créez et organisez des parcours de formation.</p>
         </div>
-        <Button>
+        <Button disabled>
             <PlusCircle className="mr-2 h-4 w-4"/>
             Ajouter une Formation
         </Button>
@@ -29,14 +52,38 @@ export default function AdminFormationsPage() {
                 <TableHeader>
                     <TableRow>
                         <TableHead>Titre</TableHead>
-                        <TableHead>Segment</TableHead>
+                        <TableHead>Description</TableHead>
                         <TableHead>Accès</TableHead>
-                        <TableHead>Date de création</TableHead>
-                        <TableHead>Actions</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
-                    {/* Map through formations here */}
+                    {formations.map(formation => (
+                        <TableRow key={formation.id}>
+                            <TableCell className="font-medium">{formation.title}</TableCell>
+                            <TableCell>{formation.description}</TableCell>
+                            <TableCell>{formation.premiumOnly ? 'Premium' : 'Gratuit'}</TableCell>
+                            <TableCell className="text-right">
+                                <AlertDialog>
+                                    <AlertDialogTrigger asChild>
+                                        <Button variant="ghost" size="icon"><Trash2 className="h-4 w-4 text-destructive"/></Button>
+                                    </AlertDialogTrigger>
+                                    <AlertDialogContent>
+                                        <AlertDialogHeader>
+                                        <AlertDialogTitle>Êtes-vous sûr ?</AlertDialogTitle>
+                                        <AlertDialogDescription>
+                                            Cette action est irréversible et supprimera la formation.
+                                        </AlertDialogDescription>
+                                        </AlertDialogHeader>
+                                        <AlertDialogFooter>
+                                        <AlertDialogCancel>Annuler</AlertDialogCancel>
+                                        <AlertDialogAction onClick={() => handleDelete(formation.id)}>Supprimer</AlertDialogAction>
+                                        </AlertDialogFooter>
+                                    </AlertDialogContent>
+                                </AlertDialog>
+                            </TableCell>
+                        </TableRow>
+                    ))}
                 </TableBody>
             </Table>
         </Card>
@@ -48,7 +95,7 @@ export default function AdminFormationsPage() {
                 </div>
                 <CardTitle>Aucune formation créée</CardTitle>
                 <CardDescription>
-                    Cliquez sur "Ajouter une Formation" pour commencer.
+                    La création de formations sera bientôt disponible.
                 </CardDescription>
             </CardHeader>
         </Card>

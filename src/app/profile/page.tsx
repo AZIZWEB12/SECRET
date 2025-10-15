@@ -74,7 +74,7 @@ export default function ProfilePage() {
             .then(attempts => {
                 const quizCount = attempts.length;
                 if (quizCount > 0) {
-                    const totalCorrect = attempts.reduce((sum, acc) => sum + acc.correctCount, 0);
+                    const totalCorrect = attempts.reduce((sum, acc) => sum + acc.score, 0);
                     const totalQuestions = attempts.reduce((sum, acc) => sum + acc.totalQuestions, 0);
                     const averageScore = totalQuestions > 0 ? Math.round((totalCorrect / totalQuestions) * 100) : 0;
                     setStats({ quizCount, totalCorrect, averageScore });

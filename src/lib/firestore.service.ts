@@ -1,3 +1,4 @@
+// src/lib/firestore.service.ts
 import { db } from './firebase';
 import { collection, addDoc, getDocs, QueryDocumentSnapshot, DocumentData, Timestamp, doc, updateDoc, query, where, orderBy, deleteDoc, serverTimestamp, getDoc, writeBatch, limit, onSnapshot } from 'firebase/firestore';
 
@@ -27,20 +28,22 @@ export const parseFirestoreDate = (dateField: any): Date => {
 
 export interface AppUser {
   uid: string;
-  fullName: string;
+  displayName?: string;
   email: string;
   phone: string;
   competitionType: 'direct' | 'professionnel';
   role: 'user' | 'admin';
   subscription_type: 'gratuit' | 'premium';
-  profilePictureUrl?: string;
+  subscription_tier?: 'mensuel' | 'annuel';
+  subscription_expires_at?: Date | Timestamp | null;
+  photoURL?: string;
   preferences?: {
     preferredCategory?: string;
     notificationsEnabled?: boolean;
     theme?: string;
   };
   streakDays?: number;
-  createdAt: Date;
+  createdAt: any;
   lastLoginAt?: Date;
 }
 
@@ -53,21 +56,22 @@ export interface Quiz {
   access_type: 'gratuit' | 'premium';
   duration_minutes: number;
   isMockExam: boolean;
-  scheduledFor?: Date;
+  scheduledFor?: any;
   questions: Array<{
     question: string;
     options: string[];
     correctAnswers: string[];
     explanation?: string;
-    type: 'multiple_choice' | 'true_false';
+    type?: 'multiple_choice' | 'true_false';
   }>;
   total_questions: number;
-  createdBy: string;
-  createdAt: Date;
-  updatedAt?: Date;
+  createdBy?: string;
+  createdAt: any;
+  updatedAt?: any;
   attemptCount?: number;
 }
-export type NewQuizData = Omit<Quiz, 'id' | 'createdAt' | 'updatedAt' | 'attemptCount'>;
+export type NewQuizData = Omit<Quiz, 'id' | 'createdAt' | 'updatedAt' | 'attemptCount' | 'total_questions'> & { total_questions?: number };
+
 
 export interface LibraryDocument {
   id: string;
@@ -79,8 +83,8 @@ export interface LibraryDocument {
   fileSize?: number;
   thumbnailUrl?: string;
   summary?: string;
-  createdBy: string;
-  createdAt: Date;
+  createdBy?: string;
+  createdAt: any;
 }
 export type LibraryDocumentFormData = Omit<LibraryDocument, 'id' | 'createdAt' | 'createdBy' | 'summary' | 'fileSize'>;
 
@@ -89,26 +93,30 @@ export interface Attempt {
   userId: string;
   quizId: string;
   quizTitle: string;
-  score: number;
+  score: number; // This is the correctCount
   totalQuestions: number;
   percentage: number;
-  answers: Array<{
-    questionIndex: number;
-    selectedAnswers: string[];
-    isCorrect: boolean;
-  }>;
+  details: {
+    [key: number]: {
+      question: string;
+      selected: string[];
+      correct: string[];
+      explanation: string;
+    }
+  };
   timeTaken?: number;
-  createdAt: Date;
+  createdAt: any;
 }
+
 
 export interface AppNotification {
   id: string;
   userId: string;
   title: string;
-  message: string;
-  type: 'info' | 'warning' | 'success';
+  description: string;
+  href: string;
   isRead: boolean;
-  createdAt: Date;
+  createdAt: any;
 }
 
 export interface Subscription {
@@ -116,8 +124,8 @@ export interface Subscription {
   userId: string;
   plan: 'monthly' | 'yearly';
   status: 'active' | 'expired' | 'cancelled';
-  startDate: Date;
-  endDate: Date;
+  startDate: any;
+  endDate: any;
   paymentId?: string;
 }
 
@@ -126,7 +134,24 @@ export interface AnalyticsEvent {
   userId: string;
   eventType: 'quiz_attempt' | 'document_view' | 'login' | 'signup';
   data: object;
-  timestamp: Date;
+  timestamp: any;
+}
+
+export interface Transaction {
+  id: string;
+  userId: string;
+  status: 'pending' | 'approved' | 'rejected';
+  createdAt: any;
+  approvedAt?: any;
+}
+
+
+export interface Formation {
+  id: string;
+  title: string;
+  description: string;
+  premiumOnly: boolean;
+  createdAt: any;
 }
 
 // #endregion
@@ -160,7 +185,7 @@ export const saveQuizToFirestore = async (quizData: NewQuizData): Promise<string
   return docRef.id;
 };
 
-export const updateQuizInFirestore = async (quizId: string, quizData: Partial<NewQuizData>): Promise<void> => {
+export const updateQuizInFirestore = async (quizId: string, quizData: Partial<Quiz>): Promise<void> => {
   const quizDocRef = doc(db, 'quizzes', quizId);
   await updateDoc(quizDocRef, {
     ...quizData,
@@ -208,10 +233,29 @@ export const updateUserRoleInFirestore = async (uid: string, role: 'admin' | 'us
   await updateDoc(userDocRef, { role });
 };
 
-export const updateUserSubscriptionInFirestore = async (uid: string, type: 'gratuit' | 'premium'): Promise<void> => {
-  const userDocRef = doc(db, 'users', uid);
-  await updateDoc(userDocRef, { subscription_type: type });
+export const updateUserSubscriptionInFirestore = async (uid: string, subscription: { type: 'gratuit' | 'premium', tier: 'mensuel' | 'annuel' | null }) => {
+    const userDocRef = doc(db, 'users', uid);
+    const updateData: Partial<AppUser> = {};
+
+    updateData.subscription_type = subscription.type;
+    
+    if (subscription.type === 'premium') {
+        const now = new Date();
+        if (subscription.tier === 'mensuel') {
+            updateData.subscription_expires_at = new Date(now.setMonth(now.getMonth() + 1));
+        } else if (subscription.tier === 'annuel') {
+            updateData.subscription_expires_at = new Date(now.setFullYear(now.getFullYear() + 1));
+        }
+        updateData.subscription_tier = subscription.tier || undefined;
+    } else {
+        // If setting to 'gratuit', clear expiry and tier
+        updateData.subscription_expires_at = null;
+        updateData.subscription_tier = undefined;
+    }
+
+    await updateDoc(userDocRef, updateData as any);
 };
+
 
 
 // #endregion
@@ -219,13 +263,13 @@ export const updateUserSubscriptionInFirestore = async (uid: string, type: 'grat
 
 // #region -------- ATTEMPT FUNCTIONS --------
 
-export const saveAttemptToFirestore = async (attemptData: Omit<Attempt, 'id' | 'createdAt'>): Promise<string> => {
+export const saveAttemptToFirestore = async (attemptData: Omit<Attempt, 'id'>): Promise<string> => {
   const docRef = await addDoc(collection(db, "attempts"), {
-    ...attemptData,
-    createdAt: serverTimestamp()
+    ...attemptData
   });
   return docRef.id;
 };
+
 
 export const getAttemptsFromFirestore = async (userId: string): Promise<Attempt[]> => {
   const attemptsRef = collection(db, "attempts");
@@ -269,6 +313,30 @@ export const addDocumentToFirestore = async (documentData: LibraryDocumentFormDa
 export const deleteDocumentFromFirestore = async (id: string): Promise<void> => {
   await deleteDoc(doc(db, "documents", id));
 };
+
+// #endregion
+
+// #region -------- FORMATION FUNCTIONS --------
+
+export const subscribeToFormations = (callback: (formations: Formation[]) => void): (() => void) => {
+  const q = query(collection(db, "formations"), orderBy("createdAt", "desc"));
+  return onSnapshot(q, (querySnapshot) => {
+    const formations = querySnapshot.docs.map((doc) => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        ...data,
+        createdAt: parseFirestoreDate(data.createdAt),
+      } as Formation;
+    });
+    callback(formations);
+  });
+};
+
+export const deleteFormationFromFirestore = async (id: string): Promise<void> => {
+  await deleteDoc(doc(db, "formations", id));
+};
+
 
 // #endregion
 

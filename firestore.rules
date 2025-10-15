@@ -22,12 +22,7 @@ service cloud.firestore {
 
     match /quizzes/{quizId} {
       allow read: if isAuth(); // Any authenticated user can read a quiz
-      allow list, create, update, delete: if isAdmin();
-    }
-    
-    match /documents/{documentId} {
-      allow read: if isAuth();
-      allow list, create, update, delete: if isAdmin();
+      allow list, write, create, delete, update: if isAdmin(); // Only admins can manage quizzes
     }
 
     match /attempts/{attemptId} {
@@ -36,19 +31,19 @@ service cloud.firestore {
       allow read, list: if (isAuth() && request.auth.uid == resource.data.userId) || isAdmin();
     }
     
-    match /notifications/{notificationId} {
-        allow read, update, delete: if isUser(resource.data.userId);
-        allow list: if isAuth();
-        allow create: if isAdmin(); // Or allow server-side creation
-    }
-
-    match /transactions/{transactionId} {
-        allow read, create, update, delete: if isAdmin();
+    match /documents/{docId} {
+      allow read: if isAuth();
+      allow list, write, create, delete, update: if isAdmin();
     }
 
     match /formations/{formationId} {
-        allow read: if isAuth();
-        allow list, create, update, delete: if isAdmin();
+      allow read: if isAuth();
+      allow list, write, create, delete, update: if isAdmin();
+    }
+
+    match /notifications/{notificationId} {
+        allow read, update, delete: if isUser(resource.data.userId);
+        allow create, list: if isAdmin();
     }
   }
 }

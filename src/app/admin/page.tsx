@@ -23,11 +23,10 @@ const adminLinks = [
     { href: "/admin/users", title: "Gérer les Utilisateurs", icon: Users },
     { href: "/admin/quizzes", title: "Gérer les Quiz", icon: BookCopy },
     { href: "/admin/formations", title: "Gérer les Formations", icon: GraduationCap },
-    { href: "/admin/payments", title: "Gérer les Transactions", icon: CreditCard },
 ];
 
 export default function AdminDashboardPage() {
-    const [stats, setStats] = useState({ totalUsers: 0, premiumUsers: 0, pendingTransactions: 0 });
+    const [stats, setStats] = useState({ totalUsers: 0, premiumUsers: 0 });
     const [recentUsers, setRecentUsers] = useState<AppUser[]>([]);
     const [loadingStats, setLoadingStats] = useState(true);
     const [loadingUsers, setLoadingUsers] = useState(true);
@@ -36,35 +35,18 @@ export default function AdminDashboardPage() {
     useEffect(() => {
         // --- Fetch Stats ---
         const usersRef = collection(db, 'users');
-        const transactionsRef = collection(db, 'transactions');
 
         const unsubStats = onSnapshot(usersRef, 
             (userSnapshot) => {
                 const totalUsers = userSnapshot.size;
                 const premiumUsers = userSnapshot.docs.filter(doc => doc.data().subscription_type === 'premium').length;
                 
-                const q = query(transactionsRef, where("status", "==", "pending"));
-                const unsubTransactions = onSnapshot(q, 
-                    (transactionSnapshot) => {
-                        setStats({
-                            totalUsers,
-                            premiumUsers,
-                            pendingTransactions: transactionSnapshot.size,
-                        });
-                        setLoadingStats(false);
-                        setError(null);
-                    },
-                    (err) => {
-                        setError("Erreur de lecture des transactions.");
-                        setLoadingStats(false);
-                        const permissionError = new FirestorePermissionError({
-                            path: 'transactions', 
-                            operation: 'list',
-                        });
-                        errorEmitter.emit('permission-error', permissionError);
-                    }
-                );
-                return () => unsubTransactions();
+                setStats({
+                    totalUsers,
+                    premiumUsers,
+                });
+                setLoadingStats(false);
+                setError(null);
             }, 
             (err) => {
                 setError("Erreur de lecture des profils.");
@@ -114,7 +96,7 @@ export default function AdminDashboardPage() {
                 </Alert>
             )}
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6">
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">Utilisateurs inscrits</CardTitle>
@@ -133,16 +115,6 @@ export default function AdminDashboardPage() {
                     <CardContent>
                         {loadingStats ? <Skeleton className="h-8 w-1/4" /> : <div className="text-2xl font-bold">{stats.premiumUsers}</div>}
                         <p className="text-xs text-muted-foreground">Abonnements actifs</p>
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Transactions en attente</CardTitle>
-                        <CreditCard className="h-4 w-4 text-muted-foreground" />
-                    </CardHeader>
-                    <CardContent>
-                        {loadingStats ? <Skeleton className="h-8 w-1/4" /> : <div className="text-2xl font-bold">{stats.pendingTransactions}</div>}
-                        <p className="text-xs text-muted-foreground">Validations requises</p>
                     </CardContent>
                 </Card>
             </div>
