@@ -157,7 +157,7 @@ export default function AdminPaymentsPage() {
                              {transactions.map(transaction => (
                                 <TableRow key={transaction.id}>
                                     <TableCell className="font-mono text-xs">{transaction.userId}</TableCell>
-                                    <TableCell>{format(transaction.createdAt.toDate(), 'dd MMM yyyy, HH:mm', { locale: fr })}</TableCell>
+                                    <TableCell>{transaction.createdAt ? format(transaction.createdAt.toDate(), 'dd MMM yyyy, HH:mm', { locale: fr }) : ''}</TableCell>
                                     <TableCell>
                                         <Badge variant={getStatusVariant(transaction.status)}>{transaction.status}</Badge>
                                     </TableCell>

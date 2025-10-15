@@ -169,7 +169,7 @@ export default function AdminUsersPage() {
                                     <Badge variant={user.subscription_type === 'premium' ? 'default' : 'outline'}>{user.subscription_type}</Badge>
                                 </TableCell>
                                 <TableCell>
-                                    {user.createdAt ? format(new Date(user.createdAt), 'dd MMM yyyy', { locale: fr }) : '-'}
+                                    {user.createdAt ? format(user.createdAt, 'dd MMM yyyy', { locale: fr }) : '-'}
                                 </TableCell>
                                 <TableCell className="text-right">
                                     <ManageUserDialog user={user} onUpdate={fetchUsers} />
