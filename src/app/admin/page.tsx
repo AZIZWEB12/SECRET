@@ -1,3 +1,4 @@
+
 'use client';
 
 import { AppLayout } from "@/components/layout/app-layout";
@@ -7,7 +8,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { collection, onSnapshot, query, where, limit, orderBy } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import { AppUser } from "@/lib/firestore.service";
+import { AppUser, parseFirestoreDate } from "@/lib/firestore.service";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -143,7 +144,7 @@ export default function AdminDashboardPage() {
                                     <TableRow key={user.uid}>
                                         <TableCell className="font-medium">{user.displayName}</TableCell>
                                         <TableCell className="text-muted-foreground text-sm">
-                                            {user.createdAt ? formatDistanceToNow(user.createdAt, { addSuffix: true, locale: fr }) : '-'}
+                                            {user.createdAt ? formatDistanceToNow(parseFirestoreDate(user.createdAt), { addSuffix: true, locale: fr }) : '-'}
                                         </TableCell>
                                         <TableCell>
                                              <Badge variant={user.subscription_type === 'premium' ? 'default' : 'secondary'}>
