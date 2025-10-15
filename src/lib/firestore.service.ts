@@ -359,15 +359,38 @@ export const deleteFormationFromFirestore = async (id: string): Promise<void> =>
 // #region -------- NOTIFICATION FUNCTIONS --------
 
 export const createNotification = async (userId: string, title: string, description: string, href: string): Promise<void> => {
-  const notificationsCollectionRef = collection(db, 'notifications');
-  await addDoc(notificationsCollectionRef, {
-    userId,
-    title,
-    description,
-    href,
-    isRead: false,
-    createdAt: serverTimestamp(),
-  });
+    const notificationsCollectionRef = collection(db, 'notifications');
+
+    if (userId === "all") {
+        // This is a simplified approach. In a large-scale app, this should be handled
+        // by a Cloud Function that reads all users and creates notifications in a batch.
+        // Doing this on the client-side is not scalable or efficient.
+        console.warn("Creating notifications for 'all' users from the client-side. This is not recommended for production.");
+        const usersSnapshot = await getDocs(collection(db, 'users'));
+        const batch = writeBatch(db);
+        usersSnapshot.forEach(userDoc => {
+            const newNotifRef = doc(collection(db, 'notifications'));
+            batch.set(newNotifRef, {
+                userId: userDoc.id,
+                title,
+                description,
+                href,
+                isRead: false,
+                createdAt: serverTimestamp(),
+            });
+        });
+        await batch.commit();
+
+    } else {
+        await addDoc(notificationsCollectionRef, {
+            userId,
+            title,
+            description,
+            href,
+            isRead: false,
+            createdAt: serverTimestamp(),
+        });
+    }
 };
 
 export const subscribeToUserNotifications = (userId: string, callback: (notifications: AppNotification[]) => void): (() => void) => {

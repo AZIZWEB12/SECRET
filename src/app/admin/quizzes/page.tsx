@@ -1,4 +1,5 @@
 
+
 // src/components/admin/QuizAdminPanel.tsx
 'use client';
 
@@ -23,6 +24,7 @@ import {
   NewQuizData,
   subscribeToQuizzes,
   parseFirestoreDate,
+  createNotification,
 } from '@/lib/firestore.service';
 // The quiz generation is performed on the server via an API route.
 // Do NOT import server-only functions directly into client components.
@@ -423,6 +425,15 @@ const QuizForm = ({ onFormSubmit, handleCloseDialog, handleOpenAiDialog }: { onF
     const { control, register, handleSubmit, watch, formState: { errors, isSubmitting } } = useFormContext<QuizFormData>();
     const { fields: questions, append: appendQuestion, remove: removeQuestion } = useFieldArray({ control, name: "questions" });
     const isMockExam = watch("isMockExam");
+
+    const handleAddQuestion = () => {
+        appendQuestion({
+            question: '',
+            options: ['', '', '', ''],
+            correctAnswers: [],
+            explanation: ''
+        });
+    };
     
     return (
         <form onSubmit={handleSubmit(onFormSubmit)} className="flex-1 overflow-hidden flex flex-col gap-4">
@@ -490,7 +501,7 @@ const QuizForm = ({ onFormSubmit, handleCloseDialog, handleOpenAiDialog }: { onF
                         <Button type="button" variant="outline" size="sm" onClick={handleOpenAiDialog}>
                             <BrainCircuit className="w-4 h-4 mr-2"/> Générer avec l'IA
                         </Button>
-                        <Button type="button" size="sm" className="ml-2" onClick={() => appendQuestion({ question: '', options: ['', ''], correctAnswers: [], explanation: '' })}>
+                        <Button type="button" size="sm" className="ml-2" onClick={handleAddQuestion}>
                             <PlusCircle className="w-4 h-4 mr-2"/> Ajouter Question
                         </Button>
                     </div>
@@ -508,10 +519,15 @@ const QuizForm = ({ onFormSubmit, handleCloseDialog, handleOpenAiDialog }: { onF
             </div>
             
             <DialogFooter>
-            <Button type="button" variant="outline" onClick={handleCloseDialog} disabled={isSubmitting}>Annuler</Button>
-            <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting ? <><Loader className="w-4 h-4 mr-2 animate-spin"/>Enregistrement...</> : <><Save className="w-4 h-4 mr-2"/>Enregistrer</>}
-            </Button>
+                <div className="flex-1">
+                    <Button type="button" variant="outline" onClick={handleAddQuestion}>
+                        <PlusCircle className="w-4 h-4 mr-2"/> Ajouter une autre question
+                    </Button>
+                </div>
+                <Button type="button" variant="outline" onClick={handleCloseDialog} disabled={isSubmitting}>Annuler</Button>
+                <Button type="submit" disabled={isSubmitting}>
+                    {isSubmitting ? <><Loader className="w-4 h-4 mr-2 animate-spin"/>Enregistrement...</> : <><Save className="w-4 h-4 mr-2"/>Enregistrer</>}
+                </Button>
             </DialogFooter>
         </form>
     )
@@ -625,7 +641,10 @@ export default function QuizAdminPanel() {
       if (editingQuiz) {
         await updateQuizInFirestore(editingQuiz.id!, quizData as Partial<Quiz>);
       } else {
-        await saveQuizToFirestore(quizData);
+        const quizId = await saveQuizToFirestore(quizData);
+        // This is a server-side operation in a real app, but for now we do it here.
+        // It would be better to have a cloud function that triggers on new quiz creation.
+        await createNotification("all", "Nouveau Quiz Disponible!", `Le quiz "${quizData.title}" vient d'être ajouté. Testez vos connaissances!`, `/quiz/${quizId}`);
       }
       
       toast({ title: 'Succès', description: `Le quiz a été ${editingQuiz ? 'mis à jour' : 'enregistré'}.` });

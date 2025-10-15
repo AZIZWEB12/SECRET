@@ -2,30 +2,38 @@
 
 import { AppLayout } from '@/components/layout/app-layout';
 import { db } from '@/lib/firebase';
-import { Attempt } from '@/lib/firestore.service';
+import { Attempt, Quiz, subscribeToQuizzes } from '@/lib/firestore.service';
 import { doc, getDoc } from 'firebase/firestore';
 import { useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertTriangle, ArrowLeft, CheckCircle, HelpCircle, XCircle, Check, X } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, CheckCircle, HelpCircle, XCircle } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 import Link from 'next/link';
-import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { useAuth } from '@/hooks/use-auth';
 import MathText from '@/components/math-text';
 import { cn } from '@/lib/utils';
 
 
+// Check if two arrays are equal regardless of order
+const arraysAreEqual = (arr1: string[], arr2: string[]) => {
+  if (arr1.length !== arr2.length) return false;
+  const sortedArr1 = [...arr1].sort();
+  const sortedArr2 = [...arr2].sort();
+  return sortedArr1.every((value, index) => value === sortedArr2[index]);
+};
+
 export default function QuizResultPage() {
   const { attemptId } = useParams();
   const { user, loading: authLoading } = useAuth();
   const [attempt, setAttempt] = useState<Attempt | null>(null);
+  const [quiz, setQuiz] = useState<Quiz | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -37,7 +45,7 @@ export default function QuizResultPage() {
         return;
     };
 
-    const fetchAttempt = async () => {
+    const fetchAttemptAndQuiz = async () => {
       setLoading(true);
       setError(null);
       const attemptDocRef = doc(db, 'attempts', attemptId as string);
@@ -45,12 +53,22 @@ export default function QuizResultPage() {
         const docSnap = await getDoc(attemptDocRef);
         if (docSnap.exists()) {
           const attemptData = { id: docSnap.id, ...docSnap.data() } as Attempt;
-          // Security check: ensure the user owns this attempt
+          
           if (attemptData.userId !== user.uid) {
             setError("Vous n'êtes pas autorisé à voir ces résultats.");
-          } else {
-            setAttempt(attemptData);
+            setLoading(false);
+            return;
           }
+          setAttempt(attemptData);
+
+          const quizDocRef = doc(db, 'quizzes', attemptData.quizId);
+          const quizSnap = await getDoc(quizDocRef);
+          if (quizSnap.exists()) {
+            setQuiz({ id: quizSnap.id, ...quizSnap.data() } as Quiz);
+          } else {
+             console.warn("Quiz not found for this attempt, some features might be degraded.");
+          }
+
         } else {
           setError("Cette tentative de quiz n'existe pas.");
         }
@@ -65,7 +83,7 @@ export default function QuizResultPage() {
       }
     };
 
-    fetchAttempt();
+    fetchAttemptAndQuiz();
   }, [attemptId, user, authLoading]);
 
   if (loading || authLoading) {
@@ -95,7 +113,7 @@ export default function QuizResultPage() {
   if (!attempt) {
     return null;
   }
-
+  
   return (
     <AppLayout>
         <div className="max-w-4xl mx-auto">
@@ -121,38 +139,31 @@ export default function QuizResultPage() {
                     </div>
 
                     <div className="space-y-8">
-                        {attempt.details && Object.entries(attempt.details).map(([index, detail]) => {
-                           const allOptions = Array.from(new Set([...detail.selected, ...detail.correct]));
+                        {quiz && attempt.details && Object.entries(attempt.details).map(([index, detail]) => {
+                           const questionIndex = parseInt(index);
+                           const questionData = quiz.questions[questionIndex];
+                           const allOptions = questionData.options;
                            
-                           // Create a list of all options that were available for this question.
-                           // This is a bit of a hack since we don't store all options in the attempt.
-                           // We can infer them from the selected and correct answers. A better approach
-                           // would be to store the full quiz question in the attempt details.
-                           const quizQuestion = attempt.quizTitle ? 
-                                (quizzes.find(q => q.id === attempt.quizId)?.questions[parseInt(index)]) : null;
-                           
-                           const questionOptions = quizQuestion ? quizQuestion.options : allOptions;
-
                            return (
                             <div key={index}>
                                 <div className="flex items-start gap-4">
-                                     <span className="font-semibold text-lg text-primary">{parseInt(index) + 1}.</span>
+                                     <span className="font-semibold text-lg text-primary">{questionIndex + 1}.</span>
                                     <div className="font-semibold flex-1 text-base"><MathText text={detail.question} isBlock/></div>
                                 </div>
                                 <div className="pl-9 mt-4 space-y-2 text-sm">
-                                    {questionOptions.map((option, i) => {
+                                    {allOptions.map((option, i) => {
                                         const isSelected = detail.selected.includes(option);
                                         const isCorrect = detail.correct.includes(option);
                                         
-                                        const isUserCorrect = isSelected && isCorrect;
-                                        const isUserIncorrect = isSelected && !isCorrect;
+                                        const isUserCorrectChoice = isSelected && isCorrect;
+                                        const isUserIncorrectChoice = isSelected && !isCorrect;
 
                                         return (
                                             <div key={i} className={cn(
                                                 "flex items-start gap-3 p-3 rounded-md border",
-                                                isUserCorrect && "bg-green-50 border-green-200 dark:bg-green-950 dark:border-green-800",
-                                                isUserIncorrect && "bg-red-50 border-red-200 dark:bg-red-950 dark:border-red-800",
-                                                isCorrect && !isSelected && "border-green-400 border-dashed"
+                                                isUserCorrectChoice && "bg-green-50 border-green-200 dark:bg-green-950 dark:border-green-800", // User chose correctly
+                                                isUserIncorrectChoice && "bg-red-50 border-red-200 dark:bg-red-950 dark:border-red-800", // User chose incorrectly
+                                                isCorrect && "border-green-400" // Always highlight the correct answer border
                                             )}>
                                                 <div>
                                                   {isCorrect ? <CheckCircle className="h-5 w-5 text-green-500" /> : (isSelected ? <XCircle className="h-5 w-5 text-red-500" /> : <div className="h-5 w-5" />) }
@@ -190,7 +201,3 @@ export default function QuizResultPage() {
     </AppLayout>
   );
 }
-
-// Dummy 'quizzes' variable to avoid compilation error. 
-// In a real implementation, this should come from a context or state management.
-const quizzes: any[] = [];

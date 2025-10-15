@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -23,7 +24,7 @@ export function MainNav({ onLinkClick }: MainNavProps) {
     const commonLinks = [
       { href: '/home', label: 'Accueil', icon: Home },
       { href: '/quiz', label: 'Quiz', icon: BookOpen },
-      { href: '/formations', label: 'Concours', icon: GanttChartSquare },
+      { href: '/concours', label: 'Concours', icon: GanttChartSquare },
     ];
 
     if (profile?.role === 'admin') {
