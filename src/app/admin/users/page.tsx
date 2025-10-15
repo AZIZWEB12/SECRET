@@ -19,7 +19,8 @@ import { useAuth } from "@/hooks/use-auth";
 
 function ManageUserDialog({ user, onUpdate }: { user: AppUser, onUpdate: () => void }) {
     const [newRole, setNewRole] = useState(user.role);
-    const [newSubscriptionType, setNewSubscriptionType] = useState(user.subscription_type.type);
+    const { type: currentType = 'gratuit' } = user.subscription_type || {};
+    const [newSubscriptionType, setNewSubscriptionType] = useState(currentType);
     const [isUpdating, setIsUpdating] = useState(false);
     const { toast } = useToast();
     const { profile: adminProfile } = useAuth();

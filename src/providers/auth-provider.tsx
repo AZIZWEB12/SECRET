@@ -47,17 +47,18 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
           if (docSnap.exists()) {
             const data = docSnap.data() as DocumentData;
             
-            // Ensure subscription_type is an object, providing a default if it's a string (for old data)
             let subscription_type = data.subscription_type;
             if (typeof subscription_type === 'string') {
               subscription_type = { type: subscription_type, tier: undefined };
+            } else if (!subscription_type) {
+              subscription_type = { type: 'gratuit', tier: null };
             }
 
 
             setProfile({
               uid: docSnap.id,
               ...data,
-              subscription_type: subscription_type || { type: 'gratuit' },
+              subscription_type: subscription_type,
               createdAt: parseFirestoreDate(data.createdAt),
               lastLoginAt: data.lastLoginAt ? parseFirestoreDate(data.lastLoginAt) : undefined,
             } as AppUser);
