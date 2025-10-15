@@ -11,79 +11,44 @@ service cloud.firestore {
     }
 
     function isAdmin() {
-      // Check if the user has the 'admin' role in the 'users' collection.
       return isAuth() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
     }
 
-    // Rules for the 'users' collection (previously 'profiles')
     match /users/{userId} {
-      // An authenticated user can read or update their own profile. Admins can read/update any profile.
       allow read, update: if isUser(userId) || isAdmin();
-      // Any authenticated user can create their own user document.
-      allow create: if isAuth() && request.auth.uid == userId;
-      // Only admins can list all users.
-      allow list: if isAdmin();
-      // Users cannot delete their own accounts through the client. Admins can delete users.
-      allow delete: if isAdmin();
+      allow create: if isAuth(); // Allow any authenticated user to create their profile
+      allow list: if isAdmin(); // Only admins can list all profiles
     }
 
-    // Rules for the 'quizzes' collection
     match /quizzes/{quizId} {
-      // Any authenticated user can read a quiz.
-      allow read: if isAuth();
-      // Only admins can create, update, delete, or list all quizzes.
-      allow write, list: if isAdmin();
+      allow read: if isAuth(); // Any authenticated user can read a quiz
+      allow list, create, update, delete: if isAdmin();
     }
     
-    // Rules for the 'documents' collection (replaces pdfs, videos)
     match /documents/{documentId} {
-       // Any authenticated user can read a document (access control is handled in the app logic).
       allow read: if isAuth();
-       // Only admins can create, update, delete, or list all documents.
-      allow write, list: if isAdmin();
+      allow list, create, update, delete: if isAdmin();
     }
 
-    // Rules for the 'attempts' collection (replaces quizAttempts)
     match /attempts/{attemptId} {
-      // Users can create their own attempts.
+      // Users can create their own attempts, and read them afterwards. Admins can read any attempt.
       allow create: if isAuth() && request.resource.data.userId == request.auth.uid;
-      // Users can read their own attempts. Admins can read any attempt.
-      allow read, list: if (isAuth() && resource.data.userId == request.auth.uid) || isAdmin();
+      allow read, list: if (isAuth() && request.auth.uid == resource.data.userId) || isAdmin();
     }
-
-    // Rules for the 'notifications' collection
+    
     match /notifications/{notificationId} {
-      // Users can read, update (mark as read), and delete their own notifications.
-      allow read, update, delete: if isAuth() && resource.data.userId == request.auth.uid;
-      // Notifications are created server-side (e.g., via Cloud Functions) or by admins.
-      // For now, allow admin to create notifications.
-      allow create: if isAdmin();
-    }
-
-    // Rules for the 'subscriptions' collection
-    match /subscriptions/{subscriptionId} {
-      // Users can read their own subscription status.
-      allow read: if isAuth() && resource.data.userId == request.auth.uid;
-      // Only admins (or a backend process) should manage subscriptions.
-      allow write, list: if isAdmin();
-    }
-
-    // Rules for the 'analytics' collection
-    match /analytics/{eventId} {
-      // The app can create analytics events.
-      allow create: if isAuth();
-      // Only admins should be able to read analytics data.
-      allow read, list: if isAdmin();
-    }
-
-    // Legacy collections (formations, payments) - restrict access if they are no longer in use
-    // or apply appropriate rules if they are being kept temporarily.
-    match /formations/{formationId} {
-      allow read, write, list: if isAdmin();
+        allow read, update, delete: if isUser(resource.data.userId);
+        allow list: if isAuth();
+        allow create: if isAdmin(); // Or allow server-side creation
     }
 
     match /transactions/{transactionId} {
-      allow read, write, list: if isAdmin();
+        allow read, create, update, delete: if isAdmin();
+    }
+
+    match /formations/{formationId} {
+        allow read: if isAuth();
+        allow list, create, update, delete: if isAdmin();
     }
   }
 }
