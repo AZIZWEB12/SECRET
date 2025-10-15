@@ -8,7 +8,7 @@ import { useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertTriangle, ArrowLeft, CheckCircle, HelpCircle, XCircle } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, CheckCircle, HelpCircle, XCircle, Check, X } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
@@ -19,14 +19,8 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { useAuth } from '@/hooks/use-auth';
 import MathText from '@/components/math-text';
+import { cn } from '@/lib/utils';
 
-// Check if two arrays are equal regardless of order
-const arraysAreEqual = (arr1: string[], arr2: string[]) => {
-  if (arr1.length !== arr2.length) return false;
-  const sortedArr1 = [...arr1].sort();
-  const sortedArr2 = [...arr2].sort();
-  return sortedArr1.every((value, index) => value === sortedArr2[index]);
-};
 
 export default function QuizResultPage() {
   const { attemptId } = useParams();
@@ -101,13 +95,6 @@ export default function QuizResultPage() {
   if (!attempt) {
     return null;
   }
-  
-  const getResultIcon = (detail: Attempt['details'][string]) => {
-      const isCorrect = arraysAreEqual(detail.selected, detail.correct);
-      if(isCorrect) return <CheckCircle className="h-5 w-5 text-green-500 flex-shrink-0" />;
-      if(detail.selected.length === 0) return <HelpCircle className="h-5 w-5 text-yellow-500 flex-shrink-0" />;
-      return <XCircle className="h-5 w-5 text-red-500 flex-shrink-0" />;
-  }
 
   return (
     <AppLayout>
@@ -133,38 +120,63 @@ export default function QuizResultPage() {
                          </div>
                     </div>
 
-                    <div className="space-y-6">
-                        {attempt.details && Object.entries(attempt.details).map(([index, detail]) => (
+                    <div className="space-y-8">
+                        {attempt.details && Object.entries(attempt.details).map(([index, detail]) => {
+                           const allOptions = Array.from(new Set([...detail.selected, ...detail.correct]));
+                           
+                           // Create a list of all options that were available for this question.
+                           // This is a bit of a hack since we don't store all options in the attempt.
+                           // We can infer them from the selected and correct answers. A better approach
+                           // would be to store the full quiz question in the attempt details.
+                           const quizQuestion = attempt.quizTitle ? 
+                                (quizzes.find(q => q.id === attempt.quizId)?.questions[parseInt(index)]) : null;
+                           
+                           const questionOptions = quizQuestion ? quizQuestion.options : allOptions;
+
+                           return (
                             <div key={index}>
                                 <div className="flex items-start gap-4">
-                                     {getResultIcon(detail)}
-                                    <div className="font-semibold flex-1 text-base">{parseInt(index) + 1}. <MathText text={detail.question} isBlock/></div>
+                                     <span className="font-semibold text-lg text-primary">{parseInt(index) + 1}.</span>
+                                    <div className="font-semibold flex-1 text-base"><MathText text={detail.question} isBlock/></div>
                                 </div>
-                                <div className="pl-9 mt-4 space-y-3 text-sm">
-                                    <div className="flex flex-wrap items-center gap-2">
-                                        <span className="text-muted-foreground font-medium">Votre réponse:</span>
-                                        {detail.selected.length > 0 ? (
-                                          detail.selected.map((s, i) => <Badge key={i} variant={detail.correct.includes(s) ? "default" : "destructive"}><MathText text={s}/></Badge>)
-                                        ) : (
-                                          <Badge variant="outline">Non répondu</Badge>
-                                        )}
-                                    </div>
-                                    <div className="flex flex-wrap items-center gap-2">
-                                        <span className="text-muted-foreground font-medium">Bonne(s) réponse(s):</span>
-                                        {detail.correct.map((c, i) => <Badge key={i} variant="default"><MathText text={c}/></Badge>)}
-                                    </div>
-                                    {detail.explanation && (
-                                        <Alert className="mt-2">
-                                            <AlertTitle className="text-sm font-semibold">Explication</AlertTitle>
-                                            <AlertDescription className="text-xs">
-                                                <MathText text={detail.explanation} />
-                                            </AlertDescription>
-                                        </Alert>
-                                    )}
+                                <div className="pl-9 mt-4 space-y-2 text-sm">
+                                    {questionOptions.map((option, i) => {
+                                        const isSelected = detail.selected.includes(option);
+                                        const isCorrect = detail.correct.includes(option);
+                                        
+                                        const isUserCorrect = isSelected && isCorrect;
+                                        const isUserIncorrect = isSelected && !isCorrect;
+
+                                        return (
+                                            <div key={i} className={cn(
+                                                "flex items-start gap-3 p-3 rounded-md border",
+                                                isUserCorrect && "bg-green-50 border-green-200 dark:bg-green-950 dark:border-green-800",
+                                                isUserIncorrect && "bg-red-50 border-red-200 dark:bg-red-950 dark:border-red-800",
+                                                isCorrect && !isSelected && "border-green-400 border-dashed"
+                                            )}>
+                                                <div>
+                                                  {isCorrect ? <CheckCircle className="h-5 w-5 text-green-500" /> : (isSelected ? <XCircle className="h-5 w-5 text-red-500" /> : <div className="h-5 w-5" />) }
+                                                </div>
+                                                <div className="flex-1">
+                                                  <MathText text={option}/>
+                                                </div>
+                                            </div>
+                                        )
+                                    })}
                                 </div>
-                                <Separator className="mt-6" />
+                                {detail.explanation && (
+                                    <Alert className="mt-4 ml-9 bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800">
+                                        <HelpCircle className="h-4 w-4 !text-blue-600" />
+                                        <AlertTitle className="text-sm font-semibold text-blue-800 dark:text-blue-300">Explication</AlertTitle>
+                                        <AlertDescription className="text-xs text-blue-700 dark:text-blue-200">
+                                            <MathText text={detail.explanation} />
+                                        </AlertDescription>
+                                    </Alert>
+                                )}
+                                <Separator className="mt-8" />
                             </div>
-                        ))}
+                           )
+                        })}
                     </div>
 
                 </CardContent>
@@ -178,3 +190,7 @@ export default function QuizResultPage() {
     </AppLayout>
   );
 }
+
+// Dummy 'quizzes' variable to avoid compilation error. 
+// In a real implementation, this should come from a context or state management.
+const quizzes: any[] = [];

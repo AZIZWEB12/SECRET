@@ -290,7 +290,7 @@ function AiGeneratorDialog({ open, onOpenChange, onGenerate, isGenerating, exist
 }
 
 function QuestionsForm({ qIndex, removeQuestion }: { qIndex: number, removeQuestion: (index: number) => void }) {
-    const { control, register, watch, setValue, getValues, formState: { errors } } = useFormContext<QuizFormData>();
+    const { control, register, watch, setValue, formState: { errors } } = useFormContext<QuizFormData>();
     
     const { fields: options, append: appendOption, remove: removeOption } = useFieldArray({
         control,
@@ -299,6 +299,8 @@ function QuestionsForm({ qIndex, removeQuestion }: { qIndex: number, removeQuest
 
     const questionOptions = watch(`questions.${qIndex}.options`);
     const correctAnswers = watch(`questions.${qIndex}.correctAnswers`) || [];
+    const questionText = watch(`questions.${qIndex}.question`);
+    const explanationText = watch(`questions.${qIndex}.explanation`);
 
     const activeTextareaRef = useRef<HTMLTextAreaElement | null>(null);
 
@@ -336,10 +338,10 @@ function QuestionsForm({ qIndex, removeQuestion }: { qIndex: number, removeQuest
     const questionErrors = errors.questions?.[qIndex];
     
     return (
-        <div className="space-y-4">
+        <div className="space-y-6">
             <div className="flex justify-between items-center">
-                <h4 className="font-bold">Question {qIndex + 1}</h4>
-                <Button type="button" variant="ghost" size="icon" className="text-red-500" onClick={() => removeQuestion(qIndex)}>
+                <h4 className="font-bold text-lg">Question {qIndex + 1}</h4>
+                <Button type="button" variant="ghost" size="icon" className="text-destructive hover:text-destructive hover:bg-destructive/10" onClick={() => removeQuestion(qIndex)}>
                     <Trash2 className="w-4 h-4"/>
                 </Button>
             </div>
@@ -347,34 +349,34 @@ function QuestionsForm({ qIndex, removeQuestion }: { qIndex: number, removeQuest
             <div className="space-y-2">
                 <Label>Texte de la question *</Label>
                 <MathToolbar onInsert={(snippet) => insertToTextarea("question", snippet)} />
-                <div className="grid md:grid-cols-2 gap-4">
-                    <Textarea 
-                        {...register(`questions.${qIndex}.question`)} 
-                        onFocus={(e) => activeTextareaRef.current = e.target}
-                        rows={6}
-                    />
-                    <div className="p-4 bg-background rounded-md border min-h-[140px]">
-                        <Label className="text-sm text-muted-foreground">Aperçu</Label>
-                        <div className="text-lg"><MathText text={watch(`questions.${qIndex}.question`)} isBlock /></div>
+                <Textarea 
+                    {...register(`questions.${qIndex}.question`)} 
+                    onFocus={(e) => activeTextareaRef.current = e.target}
+                    rows={5}
+                />
+                 {questionText && (
+                    <div className="p-4 bg-background rounded-md border min-h-[60px] prose prose-sm dark:prose-invert max-w-full">
+                        <h5 className="text-xs text-muted-foreground font-normal mb-2">Aperçu :</h5>
+                        <MathText text={questionText} isBlock />
                     </div>
-                </div>
+                )}
                 {questionErrors?.question && <p className="text-red-500 text-xs mt-1">{questionErrors.question.message}</p>}
             </div>
 
             <div className="space-y-2">
                 <Label>Explication (optionnel)</Label>
                 <MathToolbar onInsert={(snippet) => insertToTextarea("explanation", snippet)} />
-                <div className="grid md:grid-cols-2 gap-4">
-                    <Textarea 
-                        {...register(`questions.${qIndex}.explanation`)} 
-                        onFocus={(e) => activeTextareaRef.current = e.target}
-                        rows={6}
-                    />
-                    <div className="p-4 bg-background rounded-md border min-h-[140px]">
-                        <Label className="text-sm text-muted-foreground">Aperçu</Label>
-                        <div className="text-base"><MathText text={watch(`questions.${qIndex}.explanation`)} isBlock /></div>
+                <Textarea 
+                    {...register(`questions.${qIndex}.explanation`)} 
+                    onFocus={(e) => activeTextareaRef.current = e.target}
+                    rows={3}
+                />
+                 {explanationText && (
+                    <div className="p-4 bg-background rounded-md border min-h-[60px] prose prose-sm dark:prose-invert max-w-full">
+                        <h5 className="text-xs text-muted-foreground font-normal mb-2">Aperçu :</h5>
+                        <MathText text={explanationText} isBlock />
                     </div>
-                </div>
+                 )}
             </div>
 
             <div>
@@ -385,24 +387,31 @@ function QuestionsForm({ qIndex, removeQuestion }: { qIndex: number, removeQuest
                  {questionErrors?.options?.root && <p className="text-red-500 text-xs mt-1">{questionErrors.options.root.message}</p>}
                  {questionErrors?.correctAnswers && <p className="text-red-500 text-xs mt-1">{questionErrors.correctAnswers.message}</p>}
 
-                <div className="space-y-2 mt-1">
-                    {options.map((option, optionIndex) => (
-                        <div key={option.id} className="flex items-center gap-2">
-                             <Checkbox
-                                checked={correctAnswers.includes(questionOptions?.[optionIndex])}
-                                onCheckedChange={() => handleCorrectAnswerChange(questionOptions?.[optionIndex])}
-                                disabled={!questionOptions?.[optionIndex]}
-                             />
-                            <div className="flex-1 grid grid-cols-2 gap-2">
-                                <Input {...register(`questions.${qIndex}.options.${optionIndex}`)} placeholder={`Option ${optionIndex + 1}`} />
-                                <div className="p-2 border rounded-md bg-background text-sm flex items-center">
-                                    <MathText text={watch(`questions.${qIndex}.options.${optionIndex}`)} />
+                <div className="space-y-3 mt-2">
+                    {options.map((option, optionIndex) => {
+                        const optionValue = questionOptions?.[optionIndex];
+                        return (
+                            <div key={option.id} className="flex items-center gap-2">
+                                <Checkbox
+                                    checked={correctAnswers.includes(optionValue)}
+                                    onCheckedChange={() => handleCorrectAnswerChange(optionValue)}
+                                    disabled={!optionValue}
+                                    id={`q${qIndex}-opt${optionIndex}-cb`}
+                                />
+                                <div className="flex-1 space-y-2">
+                                    <Label htmlFor={`q${qIndex}-opt${optionIndex}-cb`} className="sr-only">Option {optionIndex + 1}</Label>
+                                    <Input {...register(`questions.${qIndex}.options.${optionIndex}`)} placeholder={`Texte de l'option ${optionIndex + 1}`} />
+                                    {watch(`questions.${qIndex}.options.${optionIndex}`) && (
+                                        <div className="p-2 border rounded-md bg-background text-sm flex items-center min-h-[40px]">
+                                            <MathText text={watch(`questions.${qIndex}.options.${optionIndex}`)} />
+                                        </div>
+                                    )}
+                                    {questionErrors?.options?.[optionIndex] && <p className="text-red-500 text-xs mt-1 col-span-2">{questionErrors.options[optionIndex].message}</p>}
                                 </div>
-                                {questionErrors?.options?.[optionIndex] && <p className="text-red-500 text-xs mt-1 col-span-2">{questionErrors.options[optionIndex].message}</p>}
+                                <Button type="button" variant="ghost" size="icon" className="text-destructive hover:text-destructive hover:bg-destructive/10 shrink-0" onClick={() => removeOption(optionIndex)}><X className="w-4 h-4"/></Button>
                             </div>
-                            <Button type="button" variant="ghost" size="icon" className="text-red-500" onClick={() => removeOption(optionIndex)}><X className="w-4 h-4"/></Button>
-                        </div>
-                    ))}
+                        )
+                    })}
                 </div>
             </div>
         </div>
