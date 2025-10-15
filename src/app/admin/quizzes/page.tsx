@@ -53,7 +53,7 @@ import MathText from '@/components/math-text';
 
 const questionSchema = z.object({
   question: z.string().min(1, "La question est requise."),
-  options: z.array(z.object({ value: z.string().min(1, "L'option ne peut pas être vide.") })).min(2, "Au moins deux options sont requises."),
+  options: z.array(z.string().min(1, "L'option ne peut pas être vide.")).min(2, "Au moins deux options sont requises."),
   correctAnswers: z.array(z.string()).min(1, "Au moins une bonne réponse est requise."),
   explanation: z.string().optional(),
 });
@@ -379,7 +379,7 @@ function QuestionsForm({ qIndex, removeQuestion }: { qIndex: number, removeQuest
             <div>
                 <div className="flex justify-between items-center mb-2">
                     <Label>Options et Bonnes réponses *</Label>
-                    <Button type="button" variant="outline" size="sm" onClick={() => appendOption({ value: '' })}>Ajouter Option</Button>
+                    <Button type="button" variant="outline" size="sm" onClick={() => appendOption('')}>Ajouter Option</Button>
                 </div>
                  {questionErrors?.options?.root && <p className="text-red-500 text-xs mt-1">{questionErrors.options.root.message}</p>}
                  {questionErrors?.correctAnswers && <p className="text-red-500 text-xs mt-1">{questionErrors.correctAnswers.message}</p>}
@@ -388,16 +388,16 @@ function QuestionsForm({ qIndex, removeQuestion }: { qIndex: number, removeQuest
                     {options.map((option, optionIndex) => (
                         <div key={option.id} className="flex items-center gap-2">
                              <Checkbox
-                                checked={correctAnswers.includes(questionOptions?.[optionIndex]?.value)}
-                                onCheckedChange={() => handleCorrectAnswerChange(questionOptions?.[optionIndex]?.value)}
-                                disabled={!questionOptions?.[optionIndex]?.value}
+                                checked={correctAnswers.includes(questionOptions?.[optionIndex])}
+                                onCheckedChange={() => handleCorrectAnswerChange(questionOptions?.[optionIndex])}
+                                disabled={!questionOptions?.[optionIndex]}
                              />
                             <div className="flex-1 grid grid-cols-2 gap-2">
-                                <Input {...register(`questions.${qIndex}.options.${optionIndex}.value`)} placeholder={`Option ${optionIndex + 1}`} />
+                                <Input {...register(`questions.${qIndex}.options.${optionIndex}`)} placeholder={`Option ${optionIndex + 1}`} />
                                 <div className="p-2 border rounded-md bg-background text-sm flex items-center">
-                                    <MathText text={watch(`questions.${qIndex}.options.${optionIndex}.value`) || ''} />
+                                    <MathText text={watch(`questions.${qIndex}.options.${optionIndex}`) || ''} />
                                 </div>
-                                {questionErrors?.options?.[optionIndex]?.value && <p className="text-red-500 text-xs mt-1 col-span-2">{questionErrors.options[optionIndex].value.message}</p>}
+                                {questionErrors?.options?.[optionIndex] && <p className="text-red-500 text-xs mt-1 col-span-2">{questionErrors.options[optionIndex].message}</p>}
                             </div>
                             <Button type="button" variant="ghost" size="icon" className="text-red-500" onClick={() => removeOption(optionIndex)}><X className="w-4 h-4"/></Button>
                         </div>
@@ -479,7 +479,7 @@ const QuizForm = ({ onFormSubmit, handleCloseDialog, handleOpenAiDialog }: { onF
                         <Button type="button" variant="outline" size="sm" onClick={handleOpenAiDialog}>
                             <BrainCircuit className="w-4 h-4 mr-2"/> Générer avec l'IA
                         </Button>
-                        <Button type="button" size="sm" className="ml-2" onClick={() => appendQuestion({ question: '', options: [{ value: '' }, { value: '' }], correctAnswers: [], explanation: '' })}>
+                        <Button type="button" size="sm" className="ml-2" onClick={() => appendQuestion({ question: '', options: ['', ''], correctAnswers: [], explanation: '' })}>
                             <PlusCircle className="w-4 h-4 mr-2"/> Ajouter Question
                         </Button>
                     </div>
@@ -572,7 +572,7 @@ export default function QuizAdminPanel() {
         scheduledFor: quiz.scheduledFor ? new Date(quiz.scheduledFor) : undefined,
         questions: (quiz.questions || []).map(q => ({
           question: q.question,
-          options: q.options.map(opt => ({ value: opt })),
+          options: q.options,
           correctAnswers: q.correctAnswers,
           explanation: q.explanation || '',
         })),
@@ -599,7 +599,7 @@ export default function QuizAdminPanel() {
       isMockExam: formData.isMockExam,
       questions: formData.questions.map(q => ({
         question: q.question,
-        options: q.options.map(opt => opt.value),
+        options: q.options,
         correctAnswers: q.correctAnswers,
         explanation: q.explanation,
       })),
@@ -661,7 +661,7 @@ export default function QuizAdminPanel() {
         // Ajouter les nouvelles questions aux existantes
         const newQuestions = (quiz.questions || []).map((q: any) => ({
           question: q.question,
-          options: q.options.map((opt:any) => ({ value: opt })),
+          options: q.options,
           correctAnswers: q.correctAnswers,
           explanation: q.explanation || '',
         }));
@@ -686,7 +686,7 @@ export default function QuizAdminPanel() {
           duration_minutes: quiz.duration_minutes,
           questions: (quiz.questions || []).map((q: any) => ({
               question: q.question,
-              options: q.options.map((opt: any) => ({ value: opt })),
+              options: q.options,
               correctAnswers: q.correctAnswers,
               explanation: q.explanation || '',
           })),

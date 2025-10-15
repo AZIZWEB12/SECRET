@@ -101,6 +101,7 @@ export default function TakeQuizPage() {
             description: "Vos résultats n'ont pas pu être sauvegardés, mais vous pouvez voir la correction."
         });
         const attemptData: Attempt = {
+            id: '',
             userId: user.uid,
             quizId: quiz.id as string,
             quizTitle: quiz.title,
@@ -253,7 +254,7 @@ export default function TakeQuizPage() {
                     <p className="text-muted-foreground mt-2">
                         Bonnes réponses
                     </p>
-                    {attempt.score >= 50 ? (
+                    {attempt.percentage >= 50 ? (
                         <div className="mt-4 text-green-600">Félicitations ! Excellent travail.</div>
                     ): (
                         <div className="mt-4 text-orange-600">Continuez vos efforts, vous allez y arriver !</div>
