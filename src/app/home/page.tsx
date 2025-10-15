@@ -4,7 +4,7 @@ import { AppLayout } from '@/components/layout/app-layout';
 import { useAuth } from '@/hooks/use-auth';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import Link from 'next/link';
-import { ArrowRight, BookOpen, FileText, Film, GraduationCap, Award, Star } from 'lucide-react';
+import { ArrowRight, BookOpen, GraduationCap, Award, Star } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -21,13 +21,6 @@ const contentCategories = [
     href: '/quiz',
     icon: BookOpen,
     color: 'gradient-quiz',
-  },
-  {
-    title: 'Ressources',
-    description: 'Consultez les cours et vidéos',
-    href: '/documents',
-    icon: FileText,
-    color: 'gradient-resource',
   },
   {
     title: 'Concours',
@@ -161,7 +154,7 @@ export default function HomePage() {
 
       <div className="mt-12">
         <h2 className="text-2xl font-bold tracking-tight font-headline mb-6">Explorer</h2>
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {contentCategories.map((category, index) => (
             <Card key={category.title} className="group hover-lift overflow-hidden stagger-fade-in" style={{animationDelay: `${index * 100}ms`}}>
                 <CardHeader>

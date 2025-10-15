@@ -2,7 +2,7 @@
 
 import { AppLayout } from "@/components/layout/app-layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, BookCopy, FileText, Video, GraduationCap, CreditCard, UserCheck } from "lucide-react";
+import { Users, BookCopy, GraduationCap, CreditCard, UserCheck } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { collection, onSnapshot, query, where, limit, orderBy } from "firebase/firestore";
@@ -22,8 +22,6 @@ import { AlertTriangle } from 'lucide-react';
 const adminLinks = [
     { href: "/admin/users", title: "Gérer les Utilisateurs", icon: Users },
     { href: "/admin/quizzes", title: "Gérer les Quiz", icon: BookCopy },
-    { href: "/admin/pdfs", title: "Gérer les PDFs", icon: FileText },
-    { href: "/admin/videos", title: "Gérer les Vidéos", icon: Video },
     { href: "/admin/formations", title: "Gérer les Formations", icon: GraduationCap },
     { href: "/admin/payments", title: "Gérer les Transactions", icon: CreditCard },
 ];

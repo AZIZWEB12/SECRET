@@ -7,7 +7,7 @@ import { cn } from '@/lib/utils';
 import { AppUser } from '@/lib/firestore.service';
 import { usePwaInstall } from '@/providers/pwa-install-provider';
 import { Button } from '../ui/button';
-import { ArrowDownToLine, BookOpen, FileText, GanttChartSquare, Home, ShieldCheck, Star } from 'lucide-react';
+import { ArrowDownToLine, BookOpen, GanttChartSquare, Home, ShieldCheck, Star } from 'lucide-react';
 import { Card, CardContent } from '../ui/card';
 
 interface MainNavProps {
@@ -23,8 +23,7 @@ export function MainNav({ onLinkClick }: MainNavProps) {
     const commonLinks = [
       { href: '/home', label: 'Accueil', icon: Home },
       { href: '/quiz', label: 'Quiz', icon: BookOpen },
-      { href: '/documents', label: 'Ressources', icon: FileText },
-      { href: '/concours', label: 'Concours', icon: GanttChartSquare },
+      { href: '/formations', label: 'Concours', icon: GanttChartSquare },
     ];
 
     if (profile?.role === 'admin') {

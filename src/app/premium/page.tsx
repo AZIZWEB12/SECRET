@@ -79,15 +79,15 @@ export default function PremiumPage() {
                 <ul className="space-y-2 text-sm text-muted-foreground">
                     <li className="flex items-center gap-2">
                         <CheckCircle className="h-4 w-4 text-primary" />
-                        Accès à tous les Quiz, PDFs et Vidéos.
+                        Accès à tous les quiz interactifs.
                     </li>
                      <li className="flex items-center gap-2">
                         <CheckCircle className="h-4 w-4 text-primary" />
-                        Accès à toutes les Formations.
+                        Participation à tous les concours blancs.
                     </li>
                     <li className="flex items-center gap-2">
                         <CheckCircle className="h-4 w-4 text-primary" />
-                        Contenu exclusif et mises à jour régulières.
+                        Des nouveaux concours ajoutés régulièrement.
                     </li>
                 </ul>
 
