@@ -101,7 +101,7 @@ export async function POST(req: Request) {
         `;
 
         const { output } = await generate({
-            model: 'googleai/gemini-2.5-flash',
+            model: 'googleai/gemini-pro',
             prompt: generationPrompt,
             output: {
                 format: 'json',

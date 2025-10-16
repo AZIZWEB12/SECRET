@@ -23,20 +23,16 @@ const GenerateQuizQuestionsInputSchema = z.object({
 });
 export type GenerateQuizQuestionsInput = z.infer<typeof GenerateQuizQuestionsInputSchema>;
 
+const questionSchema = z.object({
+  question: z.string().describe("The text of the question. Should be clear and unambiguous."),
+  options: z.array(z.string()).min(4).describe("An array of at least 4 possible answers."),
+  correctAnswers: z.array(z.string()).min(1).describe("An array containing one or more correct answers from the options."),
+  explanation: z.string().optional().describe("A brief explanation of why the correct answer(s) are correct."),
+});
+
+
 const GenerateQuizQuestionsOutputSchema = z.object({
-  questions: z.array(
-    z.object({
-      question: z.string().describe('The quiz question.'),
-      options: z.array(
-        z.object({
-          label: z.string().describe('The label of the option (e.g., A, B, C, D).'),
-          text: z.string().describe('The text of the option.'),
-          is_correct: z.boolean().describe('Whether the option is correct.'),
-        })
-      ),
-      explanation: z.string().describe('The explanation for the correct answer.'),
-    })
-  ).describe('The generated quiz questions.'),
+  questions: z.array(questionSchema).describe('The generated quiz questions.'),
 });
 export type GenerateQuizQuestionsOutput = z.infer<typeof GenerateQuizQuestionsOutputSchema>;
 
@@ -54,19 +50,11 @@ const generateQuizQuestionsPrompt = ai.definePrompt({
 
   Generate {{numberOfQuestions}} questions on the topic of {{{topic}}} with a difficulty of {{{difficulty}}}.
 
-  Each question should have 4 options labeled A, B, C, and D. Each question should have at least one correct answer and up to 3 correct answers. Provide a short explanation for each question.
+  Each question should have at least 4 options. Each question should have at least one correct answer and up to 3 correct answers. Provide a short explanation for each question.
 
-  Format the output as a JSON object with a "questions" array. Each element of the array should have the following structure:
-  {
-    "question": "The question text",
-    "options": [
-      { "label": "A", "text": "Option A text", "is_correct": true|false },
-      { "label": "B", "text": "Option B text", "is_correct": true|false },
-      { "label": "C", "text": "Option C text", "is_correct": true|false },
-      { "label": "D", "text": "Option D text", "is_correct": true|false }
-    ],
-    "explanation": "Explanation of the correct answer"
-  }
+  The text of the options should be the value in the options array. The correctAnswers array should contain the full text of the correct options.
+
+  Format the output as a JSON object with a "questions" array.
   `,
 });
 
