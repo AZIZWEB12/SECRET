@@ -5,21 +5,26 @@ import { AppLayout } from '@/components/layout/app-layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { useAuth } from '@/hooks/use-auth';
-import { CheckCircle, Crown, Loader2, ShieldCheck, Whatsapp } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
-import { useState } from 'react';
-import { collection, addDoc, query, where, getDocs, serverTimestamp } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { ShieldCheck } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
 
 export default function PremiumPage() {
-  const { profile, user } = useAuth();
-  
+  const { profile, loading } = useAuth();
+  const router = useRouter();
+
   const paymentNumber = "64341393";
   const ussdCode = `*144*2*1*${paymentNumber}*4000#`;
   
-  const devNumber = "22654808048";
   const adminNumber = "22664341393";
+
+  // Redirect away if user is already premium or is an admin, or if still loading
+  useEffect(() => {
+    if (!loading && profile && (profile.subscription_type.type === 'premium' || profile.role === 'admin')) {
+      router.push('/home');
+    }
+  }, [profile, loading, router]);
+
 
   const handleContactAdmin = () => {
     const userPhone = profile?.phone || 'NON_RENSEIGNE';
@@ -29,6 +34,15 @@ export default function PremiumPage() {
     const whatsappUrl = `https://wa.me/${adminNumber}?text=${message}`;
     window.open(whatsappUrl, '_blank');
   };
+
+  // Render a loading state or nothing while checking profile
+  if (loading || (profile && (profile.subscription_type.type === 'premium' || profile.role === 'admin'))) {
+    return (
+        <AppLayout>
+             {/* You can add a skeleton loader here if you want */}
+        </AppLayout>
+    );
+  }
 
 
   return (
@@ -40,19 +54,7 @@ export default function PremiumPage() {
         </p>
       </div>
 
-      {profile?.subscription_type.type === 'premium' ? (
-         <Card className="mx-auto mt-12 max-w-lg text-center">
-            <CardHeader>
-                <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-green-100">
-                    <ShieldCheck className="h-8 w-8 text-green-600" />
-                </div>
-                <CardTitle className="text-2xl">Vous êtes déjà Premium</CardTitle>
-                <CardDescription>
-                    Merci de votre confiance. Vous avez déjà accès à toutes les fonctionnalités.
-                </CardDescription>
-            </CardHeader>
-        </Card>
-      ) : (
+      
         <Card className="mx-auto mt-12 max-w-lg">
             <CardHeader>
             <CardTitle>Abonnement Annuel</CardTitle>
@@ -63,15 +65,15 @@ export default function PremiumPage() {
                 
                 <ul className="space-y-2 text-sm text-muted-foreground">
                     <li className="flex items-center gap-2">
-                        <CheckCircle className="h-4 w-4 text-primary" />
+                        <ShieldCheck className="h-4 w-4 text-primary" />
                         Accès à tous les quiz interactifs.
                     </li>
                      <li className="flex items-center gap-2">
-                        <CheckCircle className="h-4 w-4 text-primary" />
+                        <ShieldCheck className="h-4 w-4 text-primary" />
                         Participation à tous les concours blancs.
                     </li>
                     <li className="flex items-center gap-2">
-                        <CheckCircle className="h-4 w-4 text-primary" />
+                        <ShieldCheck className="h-4 w-4 text-primary" />
                         Des nouveaux concours ajoutés régulièrement.
                     </li>
                 </ul>
@@ -99,7 +101,6 @@ export default function PremiumPage() {
                 </Button>
             </CardFooter>
         </Card>
-      )}
     </AppLayout>
   );
 }

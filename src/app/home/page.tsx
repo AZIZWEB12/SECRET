@@ -13,7 +13,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertTriangle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Attempt, getAttemptsFromFirestore } from '@/lib/firestore.service';
+import { getAttemptsFromFirestore } from '@/lib/firestore.service';
 
 const contentCategories = [
   {
@@ -25,17 +25,17 @@ const contentCategories = [
   },
   {
     title: 'Concours',
-    description: 'Suivez nos parcours',
-    href: '/formations',
+    description: 'Préparez-vous en conditions réelles',
+    href: '/concours',
     icon: GraduationCap,
     color: 'gradient-formation',
   },
   {
-    title: 'Premium',
-    description: 'Passez au niveau supérieur',
-    href: '/premium',
-    icon: Star,
-    color: 'gradient-premium',
+    title: 'Formations',
+    description: 'Suivez nos parcours complets',
+    href: '/formations',
+    icon: GraduationCap,
+    color: 'gradient-formation',
   },
 ];
 
@@ -80,7 +80,7 @@ export default function HomePage() {
   }, [user]);
 
 
-  if (loading || !user) {
+  if (loading || !user || !profile) {
     return (
       <AppLayout>
         <div className="space-y-4">
@@ -113,11 +113,10 @@ export default function HomePage() {
                     Prêt à relever de nouveaux défis ? Voici vos outils pour réussir.
                 </p>
             </div>
-             {profile?.subscription_type.type === 'premium' && (
-                <Badge variant="default" className="text-sm bg-gradient-to-r from-yellow-400 to-orange-500 text-white border-none shadow-lg">
-                    <Star className="mr-2 h-4 w-4" /> Premium
-                </Badge>
-             )}
+             <Badge variant={profile.subscription_type.type === 'premium' ? "default" : "secondary"} className="text-sm">
+                {profile.subscription_type.type === 'premium' && <Star className="mr-2 h-4 w-4" />}
+                {profile.subscription_type.type === 'premium' ? 'Premium' : 'Gratuit'}
+             </Badge>
         </div>
       </div>
       
@@ -160,7 +159,7 @@ export default function HomePage() {
             <Card key={category.title} className="group hover-lift overflow-hidden stagger-fade-in" style={{animationDelay: `${index * 100}ms`}}>
                 <CardHeader>
                   <div className={`mb-4 rounded-full p-3 bg-primary/10 w-fit`}>
-                    <category.icon className={`h-7 w-7 ${category.color}`} />
+                    <category.icon className={`h-7 w-7 text-primary`} />
                   </div>
                   <CardTitle className="text-lg">{category.title}</CardTitle>
                 </CardHeader>

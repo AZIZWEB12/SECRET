@@ -11,7 +11,6 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -20,14 +19,10 @@ import { db } from "@/lib/firebase";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { format } from "date-fns";
-import { fr } from "date-fns/locale";
-import { Attempt, getAttemptsFromFirestore, parseFirestoreDate } from "@/lib/firestore.service";
+import { getAttemptsFromFirestore } from "@/lib/firestore.service";
 
 const profileFormSchema = z.object({
   displayName: z.string().min(2, "Le nom est trop court."),
-  phone: z.string().min(8, "Le numéro de téléphone est trop court."),
-  competitionType: z.enum(["direct", "professionnel"]),
 });
 
 type ProfileFormData = z.infer<typeof profileFormSchema>;
@@ -50,8 +45,6 @@ export default function ProfilePage() {
       resolver: zodResolver(profileFormSchema),
       defaultValues: {
         displayName: '',
-        phone: '',
-        competitionType: 'direct'
       }
     });
 
@@ -62,8 +55,6 @@ export default function ProfilePage() {
         if (profile) {
             form.reset({
                 displayName: profile.displayName || '',
-                phone: profile.phone || '',
-                competitionType: profile.competitionType as 'direct' | 'professionnel' || 'direct',
             });
         }
     }, [user, profile, loading, router, form]);
@@ -104,8 +95,6 @@ export default function ProfilePage() {
       const profileRef = doc(db, 'users', user.uid);
       const updatedData = {
         displayName: data.displayName,
-        phone: data.phone,
-        competitionType: data.competitionType,
       };
 
       try {
@@ -142,8 +131,8 @@ export default function ProfilePage() {
                         <h1 className="text-3xl font-bold font-headline">{profile.displayName}</h1>
                         <p className="text-muted-foreground">{user.phoneNumber || profile.phone}</p>
                         <div className="mt-2 flex flex-wrap items-center gap-2 justify-center md:justify-start">
-                            <Badge variant={profile.subscription_type.type === 'premium' ? "default" : "secondary"}>
-                                {profile.subscription_type.type}
+                             <Badge variant={profile.subscription_type.type === 'premium' ? "default" : "secondary"}>
+                                {profile.subscription_type.type === 'premium' ? 'Premium' : 'Gratuit'}
                             </Badge>
                             <Badge variant="outline">{profile.competitionType === 'direct' ? 'Concours Direct' : 'Concours Professionnel'}</Badge>
                         </div>
@@ -157,7 +146,7 @@ export default function ProfilePage() {
                         </CardHeader>
                         <CardContent>
                             <Form {...form}>
-                                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                                     <FormField
                                         control={form.control}
                                         name="displayName"
@@ -171,40 +160,16 @@ export default function ProfilePage() {
                                             </FormItem>
                                         )}
                                     />
-                                    <FormField
-                                        control={form.control}
-                                        name="phone"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel>Numéro de téléphone</FormLabel>
-                                                <FormControl>
-                                                    <Input id="phone" {...field} placeholder="+226 XX XX XX XX"/>
-                                                </FormControl>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-                                    <FormField
-                                        control={form.control}
-                                        name="competitionType"
-                                        render={({ field }) => (
-                                          <FormItem>
-                                            <FormLabel>Segment d'apprentissage</FormLabel>
-                                            <Select onValueChange={field.onChange} value={field.value}>
-                                                <FormControl>
-                                                    <SelectTrigger>
-                                                        <SelectValue />
-                                                    </SelectTrigger>
-                                                </FormControl>
-                                                <SelectContent>
-                                                    <SelectItem value="direct">Concours Direct</SelectItem>
-                                                    <SelectItem value="professionnel">Concours Professionnel</SelectItem>
-                                                </SelectContent>
-                                            </Select>
-                                            <FormMessage />
-                                          </FormItem>
-                                        )}
-                                    />
+                                    <div className="space-y-2">
+                                        <Label>Numéro de téléphone</Label>
+                                        <Input value={profile.phone} disabled />
+                                        <p className="text-xs text-muted-foreground">Le numéro de téléphone ne peut pas être modifié.</p>
+                                    </div>
+                                     <div className="space-y-2">
+                                        <Label>Segment d'apprentissage</Label>
+                                        <Input value={profile.competitionType === 'direct' ? 'Concours Direct' : 'Concours Professionnel'} disabled />
+                                         <p className="text-xs text-muted-foreground">Le type de concours ne peut pas être modifié.</p>
+                                    </div>
                                     <Button type="submit" disabled={isSubmitting}>
                                         {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
                                         Enregistrer les modifications
