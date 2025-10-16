@@ -638,10 +638,11 @@ export default function QuizAdminPanel() {
     }
 
     try {
+      let quizId = editingQuiz?.id;
       if (editingQuiz) {
         await updateQuizInFirestore(editingQuiz.id!, quizData as Partial<Quiz>);
       } else {
-        const quizId = await saveQuizToFirestore(quizData);
+        quizId = await saveQuizToFirestore(quizData);
         // This is a server-side operation in a real app, but for now we do it here.
         // It would be better to have a cloud function that triggers on new quiz creation.
         await createNotification("all", "Nouveau Quiz Disponible!", `Le quiz "${quizData.title}" vient d'être ajouté. Testez vos connaissances!`, `/quiz/${quizId}`);
@@ -705,10 +706,12 @@ export default function QuizAdminPanel() {
       if (mode === 'add' && existingQuestions.length > 0) {
         const newQuestions = mapQuestions(quiz.questions);
 
-        formMethods.reset({
-          ...currentValues,
-          questions: [...existingQuestions, ...newQuestions],
-        });
+        formMethods.setValue(
+          "questions",
+          [...existingQuestions, ...newQuestions],
+          { shouldValidate: true, shouldDirty: true }
+        );
+
 
         toast({
           title: "Questions ajoutées !",
