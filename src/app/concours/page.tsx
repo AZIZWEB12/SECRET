@@ -17,17 +17,24 @@ import { format, isFuture, isPast, differenceInSeconds } from 'date-fns';
 import { fr } from 'date-fns/locale';
 
 function Countdown({ to }: { to: Date }) {
-    const [timeLeft, setTimeLeft] = useState(differenceInSeconds(to, new Date()));
+    const [timeLeft, setTimeLeft] = useState<number | null>(null);
 
     useEffect(() => {
-        if (timeLeft <= 0) return;
+        // This effect runs only on the client, after hydration.
+        // This prevents the hydration mismatch error.
+        const calculateTimeLeft = () => differenceInSeconds(to, new Date());
+        setTimeLeft(calculateTimeLeft());
 
         const interval = setInterval(() => {
-            setTimeLeft(prev => prev - 1);
+            setTimeLeft(calculateTimeLeft());
         }, 1000);
 
         return () => clearInterval(interval);
-    }, [timeLeft]);
+    }, [to]);
+
+    if (timeLeft === null || timeLeft <= 0) {
+        return <div className='text-center text-primary font-bold'>Démarrage imminent...</div>;
+    }
 
     const days = Math.floor(timeLeft / (24 * 3600));
     const hours = Math.floor((timeLeft % (24 * 3600)) / 3600);

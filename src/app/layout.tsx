@@ -20,7 +20,7 @@ const ptSansNarrow = PT_Sans_Narrow({
 });
 
 
-const APP_NAME = "Concours Master Prep";
+const APP_NAME = "SDC";
 const APP_DESCRIPTION = "La plateforme la plus moderne et interactive pour réussir vos concours.";
 
 export const metadata: Metadata = {
@@ -43,9 +43,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="fr" suppressHydrationWarning>
-      <head>
-        <link rel="icon" href="/logo.png" sizes="any" />
-      </head>
+      <head />
       <body className={`${ptSans.variable} ${ptSansNarrow.variable} font-body antialiased`}>
         <ThemeProvider
             attribute="class"
