@@ -60,7 +60,7 @@ export function SignupForm() {
             phone: values.phone,
             competitionType: values.competitionType,
             role: 'user', // Default to 'user'. First admin must be set manually for security.
-            subscription_type: 'gratuit',
+            subscription_type: { type: 'gratuit', tier: null },
             createdAt: serverTimestamp(),
             email: email,
         };
