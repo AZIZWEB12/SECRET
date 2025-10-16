@@ -20,6 +20,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { getAttemptsFromFirestore } from "@/lib/firestore.service";
+import { Label } from "@/components/ui/label";
 
 const profileFormSchema = z.object({
   displayName: z.string().min(2, "Le nom est trop court."),
