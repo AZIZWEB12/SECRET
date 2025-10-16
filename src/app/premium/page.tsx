@@ -3,38 +3,71 @@
 
 import { AppLayout } from '@/components/layout/app-layout';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { useAuth } from '@/hooks/use-auth';
 import { CheckCircle, Phone, Crown, Loader2, ShieldCheck } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useState } from 'react';
-import { updateUserSubscriptionInFirestore } from '@/lib/firestore.service';
+import { collection, addDoc, query, where, getDocs, serverTimestamp } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 export default function PremiumPage() {
   const { profile, user } = useAuth();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  
-  const adminContactNumber = "22664341393"; 
-  const whatsappLink = `https://wa.me/${adminContactNumber}?text=${encodeURIComponent("Bonjour, je souhaite m'abonner à l'offre premium.")}`;
+  const [hasPendingTransaction, setHasPendingTransaction] = useState(false);
 
-  const handleSubscriptionToggle = async () => {
-    if (!user || !profile) return;
+  // Check for pending transactions on component mount
+  useState(() => {
+    const checkPendingTransactions = async () => {
+      if (!user) return;
+      const transactionsRef = collection(db, 'transactions');
+      const q = query(transactionsRef, where('userId', '==', user.uid), where('status', '==', 'pending'));
+      const querySnapshot = await getDocs(q);
+      if (!querySnapshot.empty) {
+        setHasPendingTransaction(true);
+      }
+    };
+    checkPendingTransactions();
+  });
+  
+  const paymentNumber = "64341393";
+  const ussdCode = `*144*4*6*4000*${paymentNumber}#`;
+
+  const handleRequestSubscription = async () => {
+    if (!user) return;
     setIsSubmitting(true);
     
-    const newStatus = profile.subscription_type.type === 'premium' ? 'gratuit' : 'premium';
-
     try {
-        await updateUserSubscriptionInFirestore(user.uid, { type: newStatus, tier: newStatus === 'premium' ? 'annuel' : null });
-        toast({
-            title: "Statut mis à jour !",
-            description: `Vous êtes maintenant en mode ${newStatus}.`,
-        });
+        const transactionsRef = collection(db, 'transactions');
+        // Check if there is already a pending transaction
+        const q = query(transactionsRef, where('userId', '==', user.uid), where('status', '==', 'pending'));
+        const querySnapshot = await getDocs(q);
+
+        if (querySnapshot.empty) {
+            await addDoc(transactionsRef, {
+                userId: user.uid,
+                status: 'pending',
+                createdAt: serverTimestamp(),
+            });
+            toast({
+                title: "Demande envoyée !",
+                description: "Votre demande de paiement a été envoyée. L'admin la vérifiera bientôt.",
+            });
+            setHasPendingTransaction(true);
+        } else {
+             toast({
+                title: "Demande déjà en cours",
+                description: "Vous avez déjà une transaction en attente de validation.",
+                variant: 'default'
+            });
+        }
     } catch(err) {
         toast({
             variant: 'destructive',
             title: 'Erreur',
-            description: "Impossible de mettre à jour le statut."
+            description: "Impossible d'envoyer la demande."
         })
     } finally {
         setIsSubmitting(false);
@@ -61,13 +94,15 @@ export default function PremiumPage() {
                     Merci de votre confiance. Vous avez déjà accès à toutes les fonctionnalités.
                 </CardDescription>
             </CardHeader>
-             <CardContent>
-                <Button onClick={handleSubscriptionToggle} variant="outline" disabled={isSubmitting}>
-                     {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                     Repasser en mode gratuit (simulation)
-                </Button>
-            </CardContent>
         </Card>
+      ) : hasPendingTransaction ? (
+          <Alert className="mx-auto mt-12 max-w-lg">
+            <ShieldCheck className="h-4 w-4" />
+            <AlertTitle>Demande en cours de validation</AlertTitle>
+            <AlertDescription>
+                Vous avez une transaction en attente. Un administrateur la vérifiera sous peu. Votre compte sera mis à jour automatiquement après validation.
+            </AlertDescription>
+        </Alert>
       ) : (
         <Card className="mx-auto mt-12 max-w-lg">
             <CardHeader>
@@ -95,37 +130,25 @@ export default function PremiumPage() {
                  <Card className='bg-muted/50 p-4'>
                     <CardTitle className='text-base mb-2'>Comment procéder ?</CardTitle>
                     <div className="text-sm space-y-4">
-                         <p>
-                            <strong className="block mb-1">Contactez un administrateur</strong>
-                             Contactez un administrateur sur WhatsApp pour effectuer le paiement et activer votre compte.
-                        </p>
+                         <div>
+                            <strong className="block mb-1">1. Paiement Mobile</strong>
+                             Effectuez votre paiement via Orange Money en composant le code USSD suivant :
+                             <p className="font-mono text-center my-2 p-2 bg-background rounded-md">{ussdCode}</p>
+                        </div>
+                        <div>
+                           <strong className="block mb-1">2. Confirmez votre paiement</strong>
+                            Une fois le transfert d'argent effectué, cliquez sur le bouton ci-dessous pour que l'administrateur puisse vérifier et activer votre abonnement.
+                        </div>
                     </div>
                 </Card>
                 
-                <Button asChild className="w-full" size="lg">
-                    <a href={whatsappLink} target="_blank" rel="noopener noreferrer">
-                        <Phone className="mr-2 h-4 w-4" />
-                        Contacter un Admin sur WhatsApp
-                    </a>
-                </Button>
-
-                <div className="relative">
-                  <div className="absolute inset-0 flex items-center">
-                    <span className="w-full border-t" />
-                  </div>
-                  <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-background px-2 text-muted-foreground">
-                      Ou
-                    </span>
-                  </div>
-                </div>
-
-                <Button onClick={handleSubscriptionToggle} variant="secondary" className="w-full" disabled={isSubmitting}>
-                     {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                     <Crown className="mr-2 h-4 w-4" />
-                     Simuler la mise à niveau Premium
-                </Button>
             </CardContent>
+            <CardFooter>
+                 <Button onClick={handleRequestSubscription} className="w-full" size="lg" disabled={isSubmitting}>
+                     {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                     J'ai effectué le paiement
+                </Button>
+            </CardFooter>
         </Card>
       )}
     </AppLayout>
