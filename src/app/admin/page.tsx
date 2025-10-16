@@ -8,7 +8,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { collection, onSnapshot, query, where, limit, orderBy } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import { AppUser } from "@/lib/firestore.service";
+import { AppUser, parseFirestoreDate } from "@/lib/firestore.service";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -65,7 +65,14 @@ export default function AdminDashboardPage() {
         const recentUsersQuery = query(collection(db, "users"), orderBy("createdAt", "desc"), limit(5));
         const unsubRecentUsers = onSnapshot(recentUsersQuery, 
             (snapshot) => {
-                const users = snapshot.docs.map(doc => ({ uid: doc.id, ...doc.data() } as AppUser));
+                const users = snapshot.docs.map(doc => {
+                    const data = doc.data();
+                    return { 
+                        uid: doc.id, 
+                        ...data,
+                        createdAt: parseFirestoreDate(data.createdAt) 
+                    } as AppUser;
+                });
                 setRecentUsers(users);
                 setLoadingUsers(false);
             },
@@ -145,7 +152,7 @@ export default function AdminDashboardPage() {
                                     <TableRow key={user.uid}>
                                         <TableCell className="font-medium">{user.displayName}</TableCell>
                                         <TableCell className="text-muted-foreground text-sm">
-                                            {user.createdAt ? formatDistanceToNow(new Date(user.createdAt), { addSuffix: true, locale: fr }) : '-'}
+                                            {user.createdAt ? formatDistanceToNow(user.createdAt, { addSuffix: true, locale: fr }) : '-'}
                                         </TableCell>
                                         <TableCell>
                                              <Badge variant={user.subscription_type.type === 'premium' ? 'default' : 'secondary'}>
