@@ -23,15 +23,24 @@ export default function FormationsPage() {
     const { profile } = useAuth();
 
     useEffect(() => {
-        const unsubscribe = subscribeToFormations((formationList) => {
+        const unsubscribe = subscribeToFormations(
+          (formationList) => {
             setFormations(formationList);
             setLoading(false);
             setError(null);
-        });
-
-        // The onSnapshot listener in subscribeToFormations already handles errors,
-        // but we can add a fallback here.
-        // In a real app, the service would need to propagate errors for this to work.
+          },
+          (err) => {
+            setLoading(false);
+            setError('Erreur de chargement des formations.');
+            errorEmitter.emit(
+              'permission-error',
+              new FirestorePermissionError({
+                path: 'formations',
+                operation: 'list',
+              })
+            );
+          }
+        );
 
         return () => unsubscribe();
     }, []);

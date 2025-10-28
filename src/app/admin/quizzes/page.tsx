@@ -55,6 +55,8 @@ import { Switch } from '@/components/ui/switch';
 import { Checkbox } from '@/components/ui/checkbox';
 import MathText from '@/components/math-text';
 import { AppLayout } from '@/components/layout/app-layout';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 const questionSchema = z.object({
   question: z.string().min(1, "La question est requise."),
@@ -583,10 +585,22 @@ export default function QuizAdminPanel() {
 
   useEffect(() => {
     setIsLoading(true);
-    const unsubscribe = subscribeToQuizzes((fetchedQuizzes) => {
-      setQuizzes(fetchedQuizzes);
-      setIsLoading(false);
-    });
+    const unsubscribe = subscribeToQuizzes(
+      (fetchedQuizzes) => {
+        setQuizzes(fetchedQuizzes);
+        setIsLoading(false);
+      },
+      (error) => {
+        errorEmitter.emit(
+          'permission-error',
+          new FirestorePermissionError({
+            path: 'quizzes',
+            operation: 'list',
+          })
+        );
+        setIsLoading(false);
+      }
+    );
 
     return () => unsubscribe();
   }, []);

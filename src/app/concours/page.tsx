@@ -15,6 +15,8 @@ import { useRouter } from 'next/navigation';
 import { Quiz, subscribeToQuizzes, parseFirestoreDate } from '@/lib/firestore.service';
 import { format, isFuture, isPast, differenceInSeconds } from 'date-fns';
 import { fr } from 'date-fns/locale';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 function Countdown({ to }: { to: Date }) {
     const [timeLeft, setTimeLeft] = useState<number | null>(null);
@@ -57,16 +59,26 @@ export default function ConcoursPage() {
 
     useEffect(() => {
         setLoading(true);
-        const unsubscribe = subscribeToQuizzes((quizList) => {
-            const mockExamsOnly = quizList.filter(q => q.isMockExam);
+        const unsubscribe = subscribeToQuizzes(
+          (quizList) => {
+            const mockExamsOnly = quizList.filter((q) => q.isMockExam);
             setMockExams(mockExamsOnly);
             setLoading(false);
             setError(null);
-        }, (err) => {
-            console.error("Error fetching quizzes:", err);
-            setError("Erreur de chargement des concours.");
+          },
+          (err) => {
+            console.error('Error fetching quizzes:', err);
+            setError('Erreur de chargement des concours.');
             setLoading(false);
-        });
+            errorEmitter.emit(
+              'permission-error',
+              new FirestorePermissionError({
+                path: 'quizzes',
+                operation: 'list',
+              })
+            );
+          }
+        );
 
         return () => unsubscribe();
     }, []);

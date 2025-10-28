@@ -13,6 +13,8 @@ import { useAuth } from '@/hooks/use-auth';
 import { Badge } from '@/components/ui/badge';
 import { useRouter, useParams } from 'next/navigation';
 import { Quiz, subscribeToQuizzes } from '@/lib/firestore.service';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 export default function QuizzesByCategoryPage() {
     const [quizzes, setQuizzes] = useState<Quiz[]>([]);
@@ -25,16 +27,25 @@ export default function QuizzesByCategoryPage() {
 
     useEffect(() => {
         setLoading(true);
-        const unsubscribe = subscribeToQuizzes((quizList) => {
-            const filteredQuizzes = quizList.filter(q => q.category === category && !q.isMockExam);
+        const unsubscribe = subscribeToQuizzes(
+          (quizList) => {
+            const filteredQuizzes = quizList.filter(
+              (q) => q.category === category && !q.isMockExam
+            );
             setQuizzes(filteredQuizzes);
             setLoading(false);
             setError(null);
-        }, (err) => {
-            console.error("Error fetching quizzes:", err);
-            setError("Erreur de chargement des quiz.");
+          },
+          (err) => {
+            console.error('Error fetching quizzes:', err);
+            setError('Erreur de chargement des quiz.');
             setLoading(false);
-        });
+            errorEmitter.emit('permission-error', new FirestorePermissionError({
+                path: 'quizzes',
+                operation: 'list',
+            }));
+          }
+        );
 
         return () => unsubscribe();
     }, [category]);

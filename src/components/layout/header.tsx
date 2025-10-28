@@ -29,7 +29,14 @@ export function Header() {
 
   useEffect(() => {
     if (user?.uid) {
-      const unsubscribe = subscribeToUserNotifications(user.uid, setNotifications);
+      const unsubscribe = subscribeToUserNotifications(
+        user.uid,
+        setNotifications,
+        (error) => {
+          // In a real app, you might want to show a toast or a silent error log.
+          console.error('Failed to subscribe to notifications:', error);
+        }
+      );
       return () => unsubscribe();
     }
   }, [user?.uid]);

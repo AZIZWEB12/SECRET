@@ -1,7 +1,7 @@
 
 // src/lib/firestore.service.ts
 import { db } from './firebase';
-import { collection, addDoc, getDocs, QueryDocumentSnapshot, DocumentData, Timestamp, doc, updateDoc, query, where, orderBy, deleteDoc, serverTimestamp, getDoc, writeBatch, limit, onSnapshot } from 'firebase/firestore';
+import { collection, addDoc, getDocs, QueryDocumentSnapshot, DocumentData, Timestamp, doc, updateDoc, query, where, orderBy, deleteDoc, serverTimestamp, getDoc, writeBatch, limit, onSnapshot, Unsubscribe } from 'firebase/firestore';
 
 
 /**
@@ -333,7 +333,7 @@ export const deleteDocumentFromFirestore = async (id: string): Promise<void> => 
 
 // #region -------- FORMATION FUNCTIONS --------
 
-export const subscribeToFormations = (callback: (formations: Formation[]) => void): (() => void) => {
+export const subscribeToFormations = (callback: (formations: Formation[]) => void, onError?: (error: Error) => void): Unsubscribe => {
   const q = query(collection(db, "formations"), orderBy("createdAt", "desc"));
   return onSnapshot(q, (querySnapshot) => {
     const formations = querySnapshot.docs.map((doc) => {
@@ -345,6 +345,9 @@ export const subscribeToFormations = (callback: (formations: Formation[]) => voi
       } as Formation;
     });
     callback(formations);
+  }, (error) => {
+    console.error("Error subscribing to formations:", error);
+    if(onError) onError(error);
   });
 };
 
@@ -393,24 +396,35 @@ export const createNotification = async (userId: string, title: string, descript
     }
 };
 
-export const subscribeToUserNotifications = (userId: string, callback: (notifications: AppNotification[]) => void): (() => void) => {
+export const subscribeToUserNotifications = (
+  userId: string,
+  callback: (notifications: AppNotification[]) => void,
+  onError?: (error: Error) => void
+): Unsubscribe => {
   const q = query(
-    collection(db, "notifications"),
-    where("userId", "==", userId),
-    orderBy("createdAt", "desc"),
+    collection(db, 'notifications'),
+    where('userId', '==', userId),
+    orderBy('createdAt', 'desc'),
     limit(10)
   );
-  return onSnapshot(q, (querySnapshot) => {
-    const notifications = querySnapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data(),
-      createdAt: parseFirestoreDate(doc.data().createdAt),
-    } as AppNotification));
-    callback(notifications);
-  }, (error) => {
-    console.error("Error subscribing to notifications: ", error);
-    callback([]);
-  });
+  return onSnapshot(
+    q,
+    (querySnapshot) => {
+      const notifications = querySnapshot.docs.map(
+        (doc) =>
+          ({
+            id: doc.id,
+            ...doc.data(),
+            createdAt: parseFirestoreDate(doc.data().createdAt),
+          } as AppNotification)
+      );
+      callback(notifications);
+    },
+    (error) => {
+      console.error('Error subscribing to notifications: ', error);
+      if (onError) onError(error);
+    }
+  );
 };
 
 export const markNotificationAsRead = async (notificationId: string): Promise<void> => {

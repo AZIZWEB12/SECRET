@@ -9,6 +9,8 @@ import { useEffect, useState } from 'react';
 import { Formation, subscribeToFormations, deleteFormationFromFirestore } from '@/lib/firestore.service';
 import { useToast } from '@/hooks/use-toast';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 export default function AdminFormationsPage() {
   const [formations, setFormations] = useState<Formation[]>([]);
@@ -16,13 +18,31 @@ export default function AdminFormationsPage() {
   const { toast } = useToast();
 
   useEffect(() => {
-    const unsubscribe = subscribeToFormations((data) => {
+    const unsubscribe = subscribeToFormations(
+      (data) => {
         setFormations(data);
         setLoading(false);
-    });
+      },
+      (error) => {
+        setLoading(false);
+        toast({
+          title: 'Erreur de chargement',
+          description:
+            'Impossible de charger les formations. Vérifiez vos permissions.',
+          variant: 'destructive',
+        });
+        errorEmitter.emit(
+          'permission-error',
+          new FirestorePermissionError({
+            path: 'formations',
+            operation: 'list',
+          })
+        );
+      }
+    );
 
     return () => unsubscribe();
-  }, []);
+  }, [toast]);
 
   const handleDelete = async (id: string) => {
     try {
