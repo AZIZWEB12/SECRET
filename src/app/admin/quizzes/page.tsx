@@ -54,6 +54,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Checkbox } from '@/components/ui/checkbox';
 import MathText from '@/components/math-text';
+import { AppLayout } from '@/components/layout/app-layout';
 
 const questionSchema = z.object({
   question: z.string().min(1, "La question est requise."),
@@ -79,16 +80,25 @@ const quizFormSchema = z.object({
 
 type QuizFormData = z.infer<typeof quizFormSchema>;
 
+// This function runs on the server and client. It must be consistent.
+// It formats a Date object into a string suitable for <input type="datetime-local">.
 const formatDateForInput = (date?: Date): string => {
     if (!date) return '';
     try {
         const d = new Date(date);
-        d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
-        return d.toISOString().slice(0, 16);
+        // Format to YYYY-MM-DDTHH:mm
+        const year = d.getFullYear();
+        const month = (d.getMonth() + 1).toString().padStart(2, '0');
+        const day = d.getDate().toString().padStart(2, '0');
+        const hours = d.getHours().toString().padStart(2, '0');
+        const minutes = d.getMinutes().toString().padStart(2, '0');
+        return `${year}-${month}-${day}T${hours}:${minutes}`;
     } catch (e) {
+        console.error("Error formatting date:", e);
         return '';
     }
 };
+
 
 const latexSnippets = {
   fraction: '\\frac{}{}',
@@ -425,6 +435,17 @@ const QuizForm = ({ onFormSubmit, handleCloseDialog, handleOpenAiDialog }: { onF
     const { control, register, handleSubmit, watch, formState: { errors, isSubmitting } } = useFormContext<QuizFormData>();
     const { fields: questions, append: appendQuestion, remove: removeQuestion } = useFieldArray({ control, name: "questions" });
     const isMockExam = watch("isMockExam");
+    
+    // State for client-side rendering of the date
+    const [clientDate, setClientDate] = useState<string>('');
+    const scheduledForValue = watch("scheduledFor");
+
+    useEffect(() => {
+        // This effect runs only on the client, after hydration.
+        // This prevents a mismatch between server and client rendered HTML.
+        setClientDate(formatDateForInput(scheduledForValue));
+    }, [scheduledForValue]);
+
 
     const handleAddQuestion = () => {
         appendQuestion({
@@ -487,7 +508,7 @@ const QuizForm = ({ onFormSubmit, handleCloseDialog, handleOpenAiDialog }: { onF
                 <div className="mt-4 space-y-1.5">
                     <Label>Date de programmation</Label>
                     <Controller name="scheduledFor" control={control} render={({ field }) => (
-                    <Input type="datetime-local" value={formatDateForInput(field.value)} onChange={(e) => field.onChange(new Date(e.target.value))}/>
+                    <Input type="datetime-local" value={clientDate} onChange={(e) => field.onChange(new Date(e.target.value))}/>
                     )}/>
                     {errors.scheduledFor && <p className="text-red-500 text-xs mt-1">{errors.scheduledFor.message}</p>}
                 </div>
@@ -741,102 +762,99 @@ export default function QuizAdminPanel() {
   };
   
   return (
-    <>
-    <div className="p-4 sm:p-6 md:p-8 space-y-6">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" className="mr-2 lg:hidden" onClick={() => router.back()}>
-            <ArrowLeft className="w-5 h-5" />
+    <AppLayout>
+      <div className="space-y-6">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-xl flex items-center justify-center shadow-lg">
+              <ClipboardList className="w-6 h-6 text-white" />
+            </div>
+            <div>
+              <h1 className="text-2xl sm:text-3xl font-black gradient-text">Gérer les Quiz</h1>
+              <p className="text-sm sm:text-base text-gray-600 font-medium">Créez, modifiez ou supprimez des quiz.</p>
+            </div>
+          </div>
+          <Button onClick={() => handleOpenDialog()} className="bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-bold shadow-lg">
+            <PlusCircle className="w-4 h-4 mr-2"/>
+            Nouveau Quiz
           </Button>
-          <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-xl flex items-center justify-center shadow-lg">
-            <ClipboardList className="w-6 h-6 text-white" />
-          </div>
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-black gradient-text">Gérer les Quiz</h1>
-            <p className="text-sm sm:text-base text-gray-600 font-medium">Créez, modifiez ou supprimez des quiz.</p>
-          </div>
         </div>
-        <Button onClick={() => handleOpenDialog()} className="bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-bold shadow-lg">
-          <PlusCircle className="w-4 h-4 mr-2"/>
-          Nouveau Quiz
-        </Button>
-      </div>
-      
-      <Card className="glassmorphism shadow-xl">
-        <CardHeader>
-          <CardTitle>Liste des quiz</CardTitle>
-          <CardDescription>{quizzes.length} quiz disponibles.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {isLoading ? (
-            <div className="flex justify-center items-center h-64"><Loader className="w-10 h-10 animate-spin text-purple-500"/></div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Titre</TableHead>
-                  <TableHead>Catégorie</TableHead>
-                  <TableHead>Questions</TableHead>
-                  <TableHead>Accès</TableHead>
-                  <TableHead><span className="sr-only">Actions</span></TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {quizzes.map((quiz) => (
-                  <TableRow key={quiz.id}>
-                    <TableCell className="font-medium">{quiz.title}</TableCell>
-                    <TableCell>{quiz.category}</TableCell>
-                    <TableCell>{quiz.total_questions}</TableCell>
-                    <TableCell><Badge variant={quiz.access_type === 'premium' ? 'destructive' : 'default'}>{quiz.access_type}</Badge></TableCell>
-                    <TableCell className="flex gap-2 justify-end">
-                      <Button variant="ghost" size="icon" onClick={() => handleOpenDialog(quiz)}><Edit className="h-4 w-4" /></Button>
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button variant="ghost" size="icon" className="text-red-500 hover:text-red-600"><Trash2 className="h-4 w-4" /></Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Êtes-vous sûr ?</AlertDialogTitle>
-                            <AlertDialogDescription>Cette action est irréversible.</AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Annuler</AlertDialogCancel>
-                            <AlertDialogAction onClick={() => handleDeleteQuiz(quiz.id!)} className="bg-destructive hover:bg-destructive/90">Supprimer</AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
-                    </TableCell>
+        
+        <Card className="shadow-xl">
+          <CardHeader>
+            <CardTitle>Liste des quiz</CardTitle>
+            <CardDescription>{quizzes.length} quiz disponibles.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {isLoading ? (
+              <div className="flex justify-center items-center h-64"><Loader className="w-10 h-10 animate-spin text-primary"/></div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Titre</TableHead>
+                    <TableHead>Catégorie</TableHead>
+                    <TableHead>Questions</TableHead>
+                    <TableHead>Accès</TableHead>
+                    <TableHead><span className="sr-only">Actions</span></TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
-      
-      <Dialog open={isQuizFormOpen} onOpenChange={(open) => !open && handleCloseDialog()}>
-        <DialogContent className="max-w-4xl h-[90vh] flex flex-col">
-          <DialogHeader>
-            <DialogTitle>{editingQuiz ? 'Modifier le Quiz' : 'Créer un nouveau Quiz'}</DialogTitle>
-            <DialogDescription>Remplissez les détails ci-dessous. Les champs marqués d'un * sont obligatoires.</DialogDescription>
-          </DialogHeader>
-          <FormProvider {...formMethods}>
-            <QuizForm 
-                onFormSubmit={onFormSubmit}
-                handleCloseDialog={handleCloseDialog}
-                handleOpenAiDialog={() => setIsAiGeneratorOpen(true)}
-            />
-          </FormProvider>
-        </DialogContent>
-      </Dialog>
-    </div>
-    <AiGeneratorDialog
-      open={isAiGeneratorOpen}
-      onOpenChange={setIsAiGeneratorOpen}
-      onGenerate={handleGenerateQuiz}
-      isGenerating={isGenerating}
-      existingQuestionsCount={getValues().questions?.length || 0}
-    />
-    </>
+                </TableHeader>
+                <TableBody>
+                  {quizzes.map((quiz) => (
+                    <TableRow key={quiz.id}>
+                      <TableCell className="font-medium">{quiz.title}</TableCell>
+                      <TableCell>{quiz.category}</TableCell>
+                      <TableCell>{quiz.total_questions}</TableCell>
+                      <TableCell><Badge variant={quiz.access_type === 'premium' ? 'destructive' : 'default'}>{quiz.access_type}</Badge></TableCell>
+                      <TableCell className="flex gap-2 justify-end">
+                        <Button variant="ghost" size="icon" onClick={() => handleOpenDialog(quiz)}><Edit className="h-4 w-4" /></Button>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button variant="ghost" size="icon" className="text-red-500 hover:text-red-600"><Trash2 className="h-4 w-4" /></Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Êtes-vous sûr ?</AlertDialogTitle>
+                              <AlertDialogDescription>Cette action est irréversible.</AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Annuler</AlertDialogCancel>
+                              <AlertDialogAction onClick={() => handleDeleteQuiz(quiz.id!)} className="bg-destructive hover:bg-destructive/90">Supprimer</AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </CardContent>
+        </Card>
+        
+        <Dialog open={isQuizFormOpen} onOpenChange={(open) => !open && handleCloseDialog()}>
+          <DialogContent className="max-w-4xl h-[90vh] flex flex-col">
+            <DialogHeader>
+              <DialogTitle>{editingQuiz ? 'Modifier le Quiz' : 'Créer un nouveau Quiz'}</DialogTitle>
+              <DialogDescription>Remplissez les détails ci-dessous. Les champs marqués d'un * sont obligatoires.</DialogDescription>
+            </DialogHeader>
+            <FormProvider {...formMethods}>
+              <QuizForm 
+                  onFormSubmit={onFormSubmit}
+                  handleCloseDialog={handleCloseDialog}
+                  handleOpenAiDialog={() => setIsAiGeneratorOpen(true)}
+              />
+            </FormProvider>
+          </DialogContent>
+        </Dialog>
+      </div>
+      <AiGeneratorDialog
+        open={isAiGeneratorOpen}
+        onOpenChange={setIsAiGeneratorOpen}
+        onGenerate={handleGenerateQuiz}
+        isGenerating={isGenerating}
+        existingQuestionsCount={getValues().questions?.length || 0}
+      />
+    </AppLayout>
   );
 }
